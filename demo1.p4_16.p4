@@ -14,62 +14,36 @@ limitations under the License.
 
 
 /*
- * standard #include in just about every P4 program.  You can see its
- * (short) contents here:
- *
- * https://github.com/p4lang/p4c/blob/master/p4include/core.p4
+ほぼすべてのP4プログラムに標準の#includeが含まれています。
+その（短い）コンテンツはここで見ることができます：https://github.com/p4lang/p4c/blob/master/p4include/core.p4
  */
 #include <core.p4>
 
 
-/* v1model.p4 defines one P4_16 'architecture', i.e. is there an
- * ingress and an egress pipeline, or just one?  Where is parsing
- * done, and how many parsers does the target device have?  etc.
- *
- * You can see its contents here:
- * https://github.com/p4lang/p4c/blob/master/p4include/v1model.p4
- *
- * The standard P4_16 architecture called PSA (Portable Switch
- * Architecture) version 1.1 was published on November 22, 2018 here:
- *
- * https://p4.org/specs/
- *
- * P4_16 programs written for the PSA architecture should include the
- * file psa.p4 instead of v1model.p4, and several parts of the program
- * after that would use different extern objects and functions than
- * this example program shows.
- *
- * In the v1model.p4 architecture, ingress consists of these things,
- * programmed in P4.  Each P4 program can name these things as they
- * choose.  The name used in this program for that piece is given in
- * parentheses:
- *
- * + a parser (parserImpl)
- * + a specialized control block intended for verifying checksums
- *   in received headers (verifyChecksum)
- * + ingress match-action pipeline (ingressImpl)
- *
- * Then there is a packet replication engine and packet buffer, which
- * are not P4-programmable.
- *
- * Egress consists of these things, programmed in P4:
- *
- * + egress match-action pipeline (egressImpl)
- * + a specialized control block intended for computing checksums in
- *   transmitted headers (updateChecksum)
- * + deparser (also called rewrite in some networking chips, deparserImpl)
+/* v1model.p4は1つのP4_16「アーキテクチャ」を定義します。
+つまり、入力パイプラインと出力パイプラインがありますか、それとも1つだけですか。
+解析はどこで行われ、ターゲットデバイスにはいくつのパーサーがありますか？
+内容はこちらで確認できます：https://github.com/p4lang/p4c/blob/master/p4include/v1model.p4 
+PSA（Portable Switch Architecture）バージョン1.1と呼ばれる標準のP4_16アーキテクチャが2018年11月22日に公開されました
+ここ：https://p4.org/specs/ PSAアーキテクチャ用に記述されたP4_16プログラムには、v1model.p4の代わりにファイルpsa.p4を含める必要があり、
+その後のプログラムのいくつかの部分では、この例とは異なるexternオブジェクトおよび関数を使用しますプログラムが表示されます。
+v1model.p4アーキテクチャでは、イングレスはこれらのもので構成され、P4でプログラムされています。
+各P4プログラムは、これらのものを選択するときに名前を付けることができます。
+この部分でこのプログラムで使用される名前は、括弧内に示されています：+パーサー（parserImpl）
++受信ヘッダーのチェックサムを検証するための特別な制御ブロック（verifyChecksum）
++入力マッチアクションパイプライン（ingressImpl）次にパケットレプリケーションがありますエンジンとパケットバッファー。
+P4でプログラムできません。 Egressは、P4でプログラムされた次の要素で構成されます。+出力マッチアクションパイプライン（egressImpl）
++送信ヘッダーのチェックサムの計算を目的とした特殊な制御ブロック（updateChecksum）
++デパーサー（一部のネットワークチップでは書き換えとも呼ばれるdeparserImpl）
  */
 
 #include <v1model.p4>
 
 
-/* bit<48> is just an unsigned integer that is exactly 48 bits wide.
- * P4_16 also has int<N> for 2's complement signed integers, and
- * varbit<N> for variable length header fields with a maximum size of
- * N bits. */
+/* bit <48>は、ちょうど48ビット幅の符号なし整数です。
+P4_16には、2の補数の符号付き整数のint <N>と、最大サイズがNビットの可変長ヘッダーフィールドのvarbit <N>もあります。 */
 
-/* header types are required for all headers you want to parse in
- * received packets, or transmit in packets sent. */
+/* ヘッダータイプは、受信パケットで解析するか、送信パケットで送信するすべてのヘッダーに必要です。*/
 
 header ethernet_t {
     bit<48> dstAddr;
@@ -92,19 +66,13 @@ header ipv4_t {
     bit<32> dstAddr;
 }
 
-/* "Metadata" is the term used for information about a packet, but
- * that might not be inside of the packet contents itself, e.g. a
- * bridge domain (BD) or VRF (Virtual Routing and Forwarding) id.
- * They can also contain copies of packet header fields if you wish,
- * which can be useful if they can be filled in from one of several
- * possible places in a packet, e.g. an outer IPv4 destination address
- * for non-IP-tunnel packets, or an inner IPv4 destination address for
- * IP tunnel packets.
- *
- * You can define as many or as few structs for metadata as you wish.
- * Some people like to have more than one struct so that metadata for
- * a forwarding feature can be grouped together, but separated from
- * unrelated metadata. */
+/* 「メタデータ」は、パケットに関する情報に使用される用語ですが、パケットコンテンツ自体の内部にはない場合があります。
+ブリッジドメイン（BD）またはVRF（仮想ルーティングおよび転送）ID。
+必要に応じて、パケットヘッダーフィールドのコピーを含めることもできます。
+これは、パケット内のいくつかの可能な場所の1つから入力できる場合に役立ちます。 
+非IPトンネルパケットの外部IPv4宛先アドレス、またはIPトンネルパケットの内部IPv4宛先アドレス。 
+メタデータの構造体は、必要に応じていくつでも定義できます。 
+転送機能のメタデータをグループ化できるが、無関係なメタデータから分離できるように、複数の構造体が必要な人もいます。 */
 
 struct fwd_metadata_t {
     bit<32> l2ptr;
@@ -112,31 +80,17 @@ struct fwd_metadata_t {
 }
 
 
-/* The v1model.p4 and psa.p4 architectures require you to define one
- * type that contains instances of all headers you care about, which
- * will typically be a struct with one member for each header instance
- * that your parser code might parse.
- *
- * You must also define another type that contains all metadata fields
- * that you use in your program.  It is typically a struct type, and
- * may contain bit vector fields, nested structs, or any other types
- * you want.
- *
- * Instances of these two types are then passed as parameters to the
- * top level controls defined by the architectures.  For example, the
- * ingress parser takes a parameter that contains your header type as
- * an 'out' parameter, returning filled-in headers when parsing is
- * complete, whereas the ingress control block takes that same
- * parameter with direction 'inout', since it is initially filled in
- * by the parser, but the ingress control block is allowed to modify
- * the contents of the headers during packet processing.
- *
- * Note: If you ever want to parse an outer and an inner IPv4 header
- * from a packet, the struct containing headers that you define should
- * contain two members, both with type ipv4_t, perhaps with field
- * names like "outer_ipv4" and "inner_ipv4", but the names are
- * completely up to you.  Similarly the struct type names 'metadata'
- * and 'headers' below can be anything you want to name them. */
+/*v1model.p4およびpsa.p4アーキテクチャでは、関心のあるすべてのヘッダーのインスタンスを含む1つのタイプを定義する必要があります。
+これは通常、パーサーコードが解析するヘッダーインスタンスごとに1つのメンバーを持つ構造体です。
+また、プログラムで使用するすべてのメタデータフィールドを含む別のタイプを定義する必要があります。
+通常、構造体型であり、ビットベクトルフィールド、ネストされた構造体、またはその他の任意の型を含むことができます。
+これらの2つのタイプのインスタンスは、パラメーターとして、アーキテクチャーによって定義されたトップレベルコントロールに渡されます。
+たとえば、入力パーサーは、ヘッダータイプを含むパラメーターを「出力」パラメーターとして受け取り、解析が完了すると入力ヘッダーを返しますが、
+入力制御ブロックは、同じパラメーターを最初から「入力」方向に受け取りますパーサーによって入力されますが、
+入力制御ブロックはパケット処理中にヘッダーの内容を変更できます。注：パケットの外部および内部IPv4ヘッダーを解析する場合、
+定義するヘッダーを含む構造体には、ipv4_t型、おそらく「outer_ipv4」や「inner_ipv4」などのフィールド名を持つ2つのメンバーが
+含まれている必要がありますが、名前は完全にあなた次第です。
+同様に、以下の構造タイプ名「メタデータ」および「ヘッダー」には、任意の名前を付けることができます。 */
 
 struct metadata_t {
     fwd_metadata_t fwd_metadata;
@@ -148,64 +102,43 @@ struct headers_t {
 }
 
 
-/* The ingress parser here is pretty simple.  It assumes every packet
- * starts with a 14-byte Ethernet header, and if the ether type is
- * 0x0800, it proceeds to parse the 20-byte mandatory part of an IPv4
- * header, ignoring whether IPv4 options might be present. */
+/* ここの入力パーサーは非常に単純です。 すべてのパケットは14バイトのイーサネットヘッダーで始まり、エーテルタイプが0x0800である場合、
+IPv4オプションが存在する可能性があるかどうかを無視して、IPv4ヘッダーの20バイトの必須部分の解析に進みます。 */
 
 parser parserImpl(packet_in packet,
                   out headers_t hdr,
                   inout metadata_t meta,
                   inout standard_metadata_t stdmeta)
 {
-    /* The notation <decimal number>w<something> means that the
-     * <something> represents a constant unsigned integer value.  The
-     * <decimal number> is the width of that number in bits.  '0x' is
-     * taken from C's method of specifying that what follows is
-     * hexadecimal.  You can also do decimal (no special prefix),
-     * binary (prefix 0b), or octal (0o), but note that octal is _not_
-     * specified as it is in C.
-     *
-     * You can also have <decimal number>s<something> where the 's'
-     * indicates the number is a 2's complement signed integer value.
-     *
-     * For just about every integer constant in your P4 program, it is
-     * usually perfectly fine to leave out the '<number>w' width
-     * specification, because the compiler infers the width it should
-     * be from the context, e.g. for the assignment below, if you
-     * leave off the '16w' the compiler infers that 0x0800 should be
-     * 16 bits wide because it is being assigned as the value of a
-     * bit<16> constant.
+    /*
+    表記<decimal number> w <something>は、<something>が定数の符号なし整数値を表すことを意味します。 
+    <decimal number>は、その数値のビット単位の幅です。
+    「0x」は、後に続くものが16進数であることを指定するCの方法から取得されます。 
+    10進数（特別なプレフィックスなし）、2進数（プレフィックス0b）、または8進数（0o）を実行することもできますが、
+    8進数はCの場合と同様に_not_指定されていることに注意してください。<decimal number> s <something> 「s」は、
+    数値が2の補数の符号付き整数値であることを示します。 P4プログラムのほぼすべての整数定数について、
+    '<number> w'の幅の指定を省略しても通常は完全に問題ありません。なぜなら、コンパイラはコンテキストから幅を推測するからです。
+    以下の割り当てでは、 '16w'を省略すると、コンパイラは0x0800が16ビット幅であると推測します。
+    これは、ビット<16>定数の値として割り当てられているためです。
      */
     const bit<16> ETHERTYPE_IPV4 = 16w0x0800;
 
-    /* A parser is specified as a finite state machine, with a 'state'
-     * definition for each state of the FSM.  There must be a state
-     * named 'start', which is the starting state.  'transition'
-     * statements indicate what the next state will be.  There are
-     * special states 'accept' and 'reject' indicating that parsing is
-     * complete, where 'accept' indicates no error during parsing, and
-     * 'reject' indicates some kind of parsing error. */
+    /* パーサーは、有限状態マシンとして指定され、FSMの各状態の「状態」定義があります。
+    開始状態である「start」という名前の状態が必要です。 「遷移」ステートメントは、次の状態がどうなるかを示します。
+    解析が完了したことを示す特別な状態「accept」と「reject」があり、
+    「accept」は解析中にエラーがないことを示し、「reject」は何らかの解析エラーを示します。 */
     state start {
         transition parse_ethernet;
     }
     state parse_ethernet {
-        /* extract() is the name of a method defined for packets,
-         * declared in core.p4 #include'd above.  The parser's
-         * execution model starts with a 'pointer' to the beginning of
-         * the received packet.  Whenever you call the extract()
-         * method, it takes the size of the argument header in bits B,
-         * copies the next B bits from the packet into that header
-         * (making that header valid), and advances the pointer into
-         * the packet by B bits.  Some P4 targets, such as the
-         * behavioral model called BMv2 simple_switch, restrict the
-         * headers and pointer to be a multiple of 8 bits. */
+        /* extract（）は、上記のcore.p4＃include'dで宣言されたパケット用に定義されたメソッドの名前です。 
+        パーサーの実行モデルは、受信したパケットの先頭への「ポインター」で始まります。
+        extract（）メソッドを呼び出すときはいつでも、引数ヘッダーのサイズをビットBで受け取り、
+        次のBビットをパケットからそのヘッダーにコピーし（そのヘッダーを有効にし）、ポインターをBビットだけパケットに進めます。
+        BMv2 simple_switchと呼ばれるビヘイビアモデルなどの一部のP4ターゲットは、ヘッダーとポインターを8ビットの倍数に制限します。*/
         packet.extract(hdr.ethernet);
-        /* The 'select' keyword introduces an expression that is like
-         * a C 'switch' statement, except that the expression for each
-         * of the cases must be a state name in the parser.  This
-         * makes convenient the handling of many possible Ethernet
-         * types or IPv4 protocol values. */
+        /* 「select」キーワードは、Cの「switch」ステートメントのような式を導入しますが、各ケースの式はパーサー内の状態名でなければなりません。
+        これにより、多くの可能なイーサネットタイプまたはIPv4プロトコル値の処理が便利になります。*/
         transition select(hdr.ethernet.etherType) {
             ETHERTYPE_IPV4: parse_ipv4;
             default: accept;
@@ -217,74 +150,40 @@ parser parserImpl(packet_in packet,
     }
 }
 
-/* This program is for a P4 target architecture that has an ingress
- * and an egress match-action 'pipeline' (nothing about the P4
- * language requires that the target hardware must have a pipeline in
- * it, but 'pipeline' is the word often used since the current highest
- * performance target devices do have one).
- *
- * The ingress match-action pipeline specified here is very small --
- * simply 2 tables applied in sequence, each with simple actions. */
+/* このプログラムは、入力および出力のマッチアクション「パイプライン」を持つP4ターゲットアーキテクチャ用です（P4言語については、
+ターゲットハードウェアにパイプラインが必要である必要はありませんが、「パイプライン」は 現在の最高性能のターゲットデバイスには1つあります）。
+ここで指定された入力一致アクションパイプラインは非常に小さく、2つのテーブルが順番に適用され、それぞれに単純なアクションがあります。 */
 
 control ingressImpl(inout headers_t hdr,
                     inout metadata_t meta,
                     inout standard_metadata_t stdmeta)
 {
     /*
-     * Why bother creating an action that just does one primitive
-     * action?  That is, why not just use 'mark_to_drop' as one of the
-     * possible actions when defining a table?  Because the P4_16
-     * compiler does not allow primitive actions to be used directly
-     * as actions of tables.  You must use 'compound actions',
-     * i.e. ones explicitly defined with the 'action' keyword like
-     * below.
-     *
-     * mark_to_drop is an extern function defined in v1model.h,
-     * implemented in the behavioral model by setting an appropriate
-     * 'standard metadata' field with a code indicating the packet
-     * should be dropped.
-     *
-     * See the following page if you are interested in more detailed
-     * documentation on the behavior of mark_to_drop and several other
-     * operations in the v1model architecture, as implemented in the
-     * open source behavioral-model BMv2 software switch:
-     * https://github.com/p4lang/behavioral-model/blob/master/docs/simple_switch.md
+なぜ1つのプリミティブなアクションを実行するだけのアクションを作成する必要があるのですか？ 
+つまり、テーブルを定義するときに可能なアクションの1つとして 'mark_to_drop'を使用しないのはなぜですか？
+P4_16コンパイラでは、プリミティブアクションをテーブルのアクションとして直接使用できないためです。
+「複合アクション」、つまり以下のような「アクション」キーワードで明示的に定義されたアクションを使用する必要があります。 
+mark_to_dropはv1model.hで定義されたextern関数で、適切な「標準メタデータ」フィールドにパケットをドロップする必要があることを示す
+コードを設定することにより、動作モデルに実装されます。
+オープンソースの動作モデルBMv2ソフトウェアスイッチに実装されている、
+mark_to_dropの動作およびv1modelアーキテクチャのその他の操作に関する詳細なドキュメントに興味がある場合は、次のページを参照してください。
+https：//github.com/p4lang/behavioral -model / blob / master / docs / simple_switch.md
      */
     action my_drop() {
         mark_to_drop(stdmeta);
     }
 
-    /* Note that there is no direction 'in', 'out', or 'inout' given
-     * for the l2ptr parameter for action set_l2ptr.  Such
-     * directionless parameters for actions indicate that the value of
-     * l2ptr comes from the control plane.
-     *
-     * That is, it is the control plane's responsibility to create one
-     * or more table entries in the table ipv4_da_lpm.  For each such
-     * entry added, the control plane specifies:
-     *
-     * + a search key.  For table ipv4_da_lpm this is a prefix from 0
-     *   to 32 bits long for the hdr.ipv4.dstAddr field.
-     *
-     * + one of the actions allowed in the P4 program.  In this case,
-     *   either set_l2ptr or my_drop (from the 'actions' list
-     *   specified in the table below).
-     *
-     * + a value for every directionless parameter of that action.
-     *
-     * If the control plane chooses the my_drop action for a table
-     * entry, there are no action parameters at all, so the control
-     * plane need not specify any.
-     *
-     * If the control plane chooses the set_l2ptr action for a table
-     * entry, it must specify a 32-bit value for the 'l2ptr'
-     * parameter.  This value will be stored in the target's
-     * ipv4_da_lpm table result for that entry.  Whenever a packet is
-     * being processed by the P4 program, and it searches the
-     * ip4_da_lpm table and matches an entry with a set_l2ptr action
-     * as its result, the value of l2ptr chosen by the control plane
-     * will become the value of the l2ptr parameter for the set_l2ptr
-     * action as it is executed at packet forwarding time. */
+    /* アクションset_l2ptrのl2ptrパラメーターに「in」、「out」、または「inout」の方向が指定されていないことに注意してください。
+    アクションのこのような方向のないパラメーターは、l2ptrの値がコントロールプレーンからのものであることを示します。
+    つまり、テーブルipv4_da_lpmに1つ以上のテーブルエントリを作成するのはコントロールプレーンの責任です。
+    追加されるそのようなエントリごとに、コントロールプレーンは以下を指定します。+検索キー。テーブルipv4_da_lpmの場合、
+    これはhdr.ipv4.dstAddrフィールドの0〜32ビット長のプレフィックスです。 + P4プログラムで許可されているアクションの1つ。
+    この場合、set_l2ptrまたはmy_drop（下の表に指定されている「アクション」リストから）。 +そのアクションのすべての無方向パラメータの値。
+    コントロールプレーンがテーブルエントリにmy_dropアクションを選択する場合、アクションパラメーターはまったくないため、
+    コントロールプレーンで何も指定する必要はありません。コントロールプレーンがテーブルエントリに対してset_l2ptrアクションを選択する場合、
+    「l2ptr」パラメーターに32ビット値を指定する必要があります。この値は、そのエントリのターゲットのipv4_da_lpmテーブル結果に保存されます。
+    パケットがP4プログラムによって処理され、ip4_da_lpmテーブルを検索し、その結果としてエントリとset_l2ptrアクションを照合するたびに、
+    コントロールプレーンによって選択されたl2ptrの値は、set_l2ptrアクションのl2ptrパラメータの値になりますパケット転送時に実行されるため。 */
     action set_l2ptr(bit<32> l2ptr) {
         /* Nothing complicated here in the action.  The l2ptr value
          * specified by the control plane and stored in the table
