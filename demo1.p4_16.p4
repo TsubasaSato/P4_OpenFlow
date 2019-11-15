@@ -185,48 +185,31 @@ https：//github.com/p4lang/behavioral -model / blob / master / docs / simple_sw
     パケットがP4プログラムによって処理され、ip4_da_lpmテーブルを検索し、その結果としてエントリとset_l2ptrアクションを照合するたびに、
     コントロールプレーンによって選択されたl2ptrの値は、set_l2ptrアクションのl2ptrパラメータの値になりますパケット転送時に実行されるため。 */
     action set_l2ptr(bit<32> l2ptr) {
-        /* Nothing complicated here in the action.  The l2ptr value
-         * specified by the control plane and stored in the table
-         * entry is copied into a field of the packet's metadata.  It
-         * will be used as the search key for the 'mac_da' table
-         * below. */
+        /* ここでのアクションは複雑ではありません。 コントロールプレーンによって指定され、テーブルエントリに保存されているl2ptr値は、
+        パケットのメタデータのフィールドにコピーされます。 以下の「mac_da」テーブルの検索キーとして使用されます。*/
         meta.fwd_metadata.l2ptr = l2ptr;
     }
     table ipv4_da_lpm {
         key = {
-            /* lpm means 'Longest Prefix Match'.  It is called a
-             * 'match_kind' in P4_16, and the two most common other
-             * choices seen in P4 programs are 'exact' and
-             * 'ternary'. */
+            /* lpmは「最長プレフィックス一致」を意味します。 
+            P4_16では「match_kind」と呼ばれ、P4プログラムで見られる他の2つの最も一般的な選択肢は「exact」と「ternary」です。*/
             hdr.ipv4.dstAddr: lpm;
         }
         actions = {
             set_l2ptr;
             my_drop;
         }
-        /* If at packet forwarding time, there is no matching entry
-         * found in the table, the action specified by the
-         * 'default_action' keyword will be performed on the packet.
-         *
-         * In this case, my_drop is only the default action for this
-         * table when the P4 program is first loaded into the device.
-         * The control plane can choose to change that default action,
-         * via an appropriate API call, to a different action.  If you
-         * put 'const' before 'default_action', then it means that
-         * this default action cannot be changed by the control
-         * plane. */
+        /* パケットの転送時に、テーブルに一致するエントリが見つからない場合、「default_action」キーワードで指定されたアクションがパケットで実行されます。
+        この場合、my_dropは、P4プログラムが最初にデバイスにロードされたときのこのテーブルのデフォルトアクションのみです。 
+        コントロールプレーンは、適切なAPI呼び出しを介して、そのデフォルトアクションを別のアクションに変更することを選択できます。 
+        'default_action'の前に 'const'を置くと、このデフォルトアクションはコントロールプレーンによって変更できないことを意味します。*/
         default_action = my_drop;
     }
 
-    /* This second table is no more complicated than the first.  The
-     * search key in this case is 'exact', so no longest prefix match
-     * going on here.  It would probably be implemented in the target
-     * as a hash table.
-     *
-     * If the control plane adds an entry to this table and chooses
-     * for that entry the action set_bd_dmac_intf, it must specify
-     * values for all 3 of the directionless parameters bd, dmac, and
-     * intf. */
+    /* この2番目のテーブルは、最初のテーブルほど複雑ではありません。 この場合の検索キーは「完全一致」であるため、
+    ここでは最長のプレフィックス一致は発生しません。 おそらく、ターゲットにハッシュテーブルとして実装されます。 
+    ントロールプレーンがこのテーブルにエントリを追加し、
+    そのエントリに対してアクションset_bd_dmac_intfを選択する場合、方向なしパラメーターbd、dmac、およびintfの3つすべての値を指定する必要があります。 */
     action set_bd_dmac_intf(bit<24> bd, bit<48> dmac, bit<9> intf) {
         meta.fwd_metadata.out_bd = bd;
         hdr.ethernet.dstAddr = dmac;
@@ -244,26 +227,18 @@ https：//github.com/p4lang/behavioral -model / blob / master / docs / simple_sw
         default_action = my_drop;
     }
 
-    /* Every control block must contain an 'apply' block.  The
-     * contents of the apply block specify the sequential flow of
-     * control of packet processing, including applying the tables you
-     * wish, in the order you wish.
-     *
-     * This one is particularly simple -- always apply the ipv4_da_lpm
-     * table, and regardless of the result, always apply the mac_da
-     * table.  It is definitely possible to have 'if' statements in
-     * apply blocks that handle many possible cases differently from
-     * each other, based upon the values of packet header fields or
-     * metadata fields. */
+    /* すべての制御ブロックには、「適用」ブロックが含まれている必要があります。 適用ブロックの内容は、希望する順序での希望するテーブルの適用を含む、
+    パケット処理の制御のシーケンシャルフローを指定します。 これは特に単純です。常にipv4_da_lpmテーブルを適用し、結果に関係なく、
+    常にmac_daテーブルを適用します。 パケットヘッダーフィールドまたはメタデータフィールドの値に基づいて、
+    多くの可能性のあるケースを互いに異なる方法で処理する適用ブロックに「if」ステートメントを含めることは間違いなく可能です。 */
     apply {
         ipv4_da_lpm.apply();
         mac_da.apply();
     }
 }
 
-/* The egress match-action pipeline is even simpler than the one for
- * ingress -- just one table that can overwrite the packet's source
- * MAC address depending on its out_bd metadata field value. */
+/*出力の一致アクションパイプラインは、入力のパイプラインよりもさらにシンプルです。
+out_bdメタデータフィールドの値に応じて、パケットの送信元MACアドレスを上書きできるテーブルは1つだけです。 */
 control egressImpl(inout headers_t hdr,
                    inout metadata_t meta,
                    inout standard_metadata_t stdmeta)
@@ -290,82 +265,43 @@ control egressImpl(inout headers_t hdr,
     }
 }
 
-/* The deparser controls what headers are created for the outgoing
- * packet. */
+/* デパーサーは、発信パケット用に作成されるヘッダーを制御します。 */
 control deparserImpl(packet_out packet,
                      in headers_t hdr)
 {
     apply {
-        /* The emit() method takes a header.  If that header's hidden
-         * 'valid' bit is true, then emit() appends the contents of
-         * the header (which may have been modified in the ingress or
-         * egress pipelines above) into the outgoing packet.
-         *
-         * If that header's hidden 'valid' bit is false, emit() does
-         * nothing. */
+        /* emit（）メソッドはヘッダーを受け取ります。 そのヘッダーの隠された「有効な」ビットがtrueの場合、
+        emit（）はヘッダーの内容（上記の入力または出力パイプラインで変更されている可能性があります）を送信パケットに追加します。 
+        そのヘッダーの隠された「有効な」ビットがfalseの場合、emit（）は何もしません。 */
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
 
-        /* This ends the deparser definition.
-         *
-         * Note that for each packet, the target device records where
-         * parsing ended, and it considers every byte of data in the
-         * packet after the last parsed header as 'payload'.  For
-         * _this_ P4 program, even a TCP header immediately following
-         * the IPv4 header is considered part of the payload.  For a
-         * different P4 program that parsed the TCP header, the TCP
-         * header would not be considered part of the payload.
-         * 
-         * Whatever is considered as payload for this particular P4
-         * program for this packet, that payload is appended after the
-         * end of whatever sequence of bytes that the deparser
-         * creates. */
+        /* これにより、デパーサー定義が終了します。 各パケットについて、ターゲットデバイスは解析の終了位置を記録し、
+        最後に解析されたヘッダーの後のパケット内のデータのすべてのバイトを「ペイロード」と見なします。 
+        _this_ P4プログラムの場合、IPv4ヘッダーの直後のTCPヘッダーもペイロードの一部と見なされます。
+        TCPヘッダーを解析した別のP4プログラムの場合、TCPヘッダーはペイロードの一部と見なされません。
+        このパケットのこの特定のP4プログラムのペイロードと見なされるものは何でも、
+        そのペイロードは、デパーサーが作成するバイトシーケンスの終わりの後に追加されます。 */
     }
 }
 
-/* In the v1model.p4 architecture this program is written for, there
- * is a 'slot' for a control block that performs checksums on the
- * already-parsed packet, and can modify metadata fields with the
- * results of those checks, e.g. to set error flags, increment error
- * counts, drop the packet, etc. */
+/*このプログラムが記述されているv1model.p4アーキテクチャには、既に解析されたパケットのチェックサムを実行する制御ブロックの「スロット」があり、
+これらのチェックの結果でメタデータフィールドを変更できます。 
+エラーフラグの設定、エラーカウントのインクリメント、パケットのドロップなど。*/
 control verifyChecksum(inout headers_t hdr, inout metadata_t meta) {
     apply {
-        /* The verify_checksum() extern function is declared in
-         * v1model.p4.  Its behavior is implementated in the target,
-         * e.g. the BMv2 software switch.
-         *
-         * It can takes a single header field by itself as the second
-         * parameter, but more commonly you want to use a list of
-         * header fields inside curly braces { }.  They are
-         * concatenated together and the checksum calculation is
-         * performed over all of them.
-         *
-         * The computed checksum is compared against the received
-         * checksum in the field hdr.ipv4.hdrChecksum, given as the
-         * 3rd argument.
-         *
-         * The verify_checksum() primitive can perform multiple kinds
-         * of hash or checksum calculations.  The 4th argument
-         * specifies that we want 'HashAlgorithm.csum16', which is the
-         * Internet checksum.
-         *
-         * The first argument is a Boolean true/false value.  The
-         * entire verify_checksum() call does nothing if that value is
-         * false.  In this case it is true only when the parsed packet
-         * had an IPv4 header, which is true exactly when
-         * hdr.ipv4.isValid() is true, and if that IPv4 header has a
-         * header length 'ihl' of 5 32-bit words.
-         *
-         * In September 2018, the simple_switch process in the
-         * p4lang/behavioral-model Github repository was enhanced so
-         * that it initializes the value of stdmeta.checksum_error to
-         * 0 for all received packets, and if any call to
-         * verify_checksum() with a first parameter of true finds an
-         * incorrect checksum value, it assigns 1 to the
-         * checksum_error field.  This field can be read in your
-         * ingress control block code, e.g. using it in an 'if'
-         * condition to choose to drop the packet.  This example
-         * program does not demonstrate that.
+        /* verify_checksum（）extern関数はv1model.p4で宣言されています。その動作は、ターゲットに実装されています。
+        BMv2ソフトウェアスイッチ。 2番目のパラメーターとして単一のヘッダーフィールドを単独で使用できますが、より一般的には、
+        中括弧{}内のヘッダーフィールドのリストを使用します。それらは一緒に連結され、それらすべてに対してチェックサム計算が実行されます。
+        計算されたチェックサムは、3番目の引数として指定されたフィールドhdr.ipv4.hdrChecksumで受信したチェックサムと比較されます。
+        verify_checksum（）プリミティブは、複数の種類のハッシュまたはチェックサムの計算を実行できます。 4番目の引数は
+        、インターネットチェックサムである 'HashAlgorithm.csum16'が必要であることを指定します。最初の引数はブール値のtrue / false値です。
+        その値がfalseの場合、verify_checksum（）呼び出し全体は何もしません。この場合、解析されたパケットにIPv4ヘッダーがあり、
+        hdr.ipv4.isValid（）がtrueであり、IPv4ヘッダーのヘッダー長が「ihl」の5 32ビットワードである場合にのみtrueになります。 
+        2018年9月、p4lang / behavioral-model Githubリポジトリのsimple_switchプロセスが拡張され、
+        すべての受信パケットのstdmeta.checksum_errorの値が0に初期化され、trueの最初のパラメーターでverify_checksum（）の呼び出しが見つかった場合
+        不正なチェックサム値の場合、checksum_errorフィールドに1を割り当てます。このフィールドは、入力制御ブロックコードで読み取ることができます。 
+        「if」条件で使用して、パケットのドロップを選択します。このサンプルプログラムはそれを示していません。
          */
         verify_checksum(hdr.ipv4.isValid() && hdr.ipv4.ihl == 5,
             { hdr.ipv4.version,
@@ -383,17 +319,13 @@ control verifyChecksum(inout headers_t hdr, inout metadata_t meta) {
     }
 }
 
-/* Also in the v1model.p4 architecture, there is a slot for a control
- * block that comes after the egress match-action pipeline, before the
- * deparser, that can be used to calculate checksums for the outgoing
- * packet. */
+/* また、v1model.p4アーキテクチャには、出力マッチアクションパイプラインの後、
+デパーサーの前に来る制御ブロック用のスロットがあり、発信パケットのチェックサムの計算に使用できます。 */
 control updateChecksum(inout headers_t hdr, inout metadata_t meta) {
     apply {
-        /* update_checksum() is declared in v1model.p4, and its
-         * arguments are similar to verify_checksum() above.  The
-         * primary difference is that after calculating the checksum,
-         * it modifies the value of the field given as the 3rd
-         * parameter to be equal to the newly computed checksum. */
+        /* update_checksum（）はv1model.p4で宣言され、その引数は上記のverify_checksum（）に似ています。 
+        主な違いは、チェックサムを計算した後、
+        3番目のパラメーターとして指定されたフィールドの値を、新しく計算されたチェックサムと等しくなるように変更することです。 */
         update_checksum(hdr.ipv4.isValid() && hdr.ipv4.ihl == 5,
             { hdr.ipv4.version,
                 hdr.ipv4.ihl,
@@ -411,10 +343,8 @@ control updateChecksum(inout headers_t hdr, inout metadata_t meta) {
 }
 
 
-/* This is a "package instantiation".  There must be at least one
- * named "main" in any complete P4_16 program.  It is what specifies
- * which pieces to plug into which "slot" in the target
- * architecture. */
+/*これは「パッケージのインスタンス化」です。 完全なP4_16プログラムには、少なくとも1つの名前の「メイン」が必要です。 
+ターゲットアーキテクチャのどの「スロット」にプラグインするかを指定するものです。 */
 
 V1Switch(parserImpl(),
          verifyChecksum(),
