@@ -35,13 +35,14 @@ header ipv4_t {
     ip4Addr_t dstAddr;
 }
 
-struct metadata {
+header arp_t {
     /* empty */
 }
 
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
+    arp_t        arp;
 }
 
 /*************************************************************************
@@ -66,6 +67,7 @@ parser MyParser(packet_in packet,
         }
     }
     state parse_arp {
+        packet.extract(hdr.arp);
         transition accept;
     }
     
@@ -120,8 +122,15 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             ipv4_lpm.apply();
-        }
-    }
+        } 
+	if (hdr.arp.isValid()) {
+	    if (standard_metadata.ingress_port == 1) {
+	        standard_metadata.egress_spec = 2 ;
+	    } else if (standard_metadata.ingress_port == 2) {
+	        standard_metadata.egress_spec = 1 ;
+	    }
+	}
+     }
 }
 
 /*************************************************************************
