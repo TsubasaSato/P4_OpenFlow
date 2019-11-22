@@ -3,6 +3,7 @@
 #include <v1model.p4>
 
 const bit<16> TYPE_IPV4 = 0x800;
+const bit<16> TYPE_ARP = 0x806:
 
 
 /*************************************************************************
@@ -59,15 +60,20 @@ parser MyParser(packet_in packet,
     state parse_ethernet {
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
+	    TYPE_ARP : parse_arp;
             TYPE_IPV4: parse_ipv4;
             default: accept;
         }
     }
-
+    state parse_arp {
+        transition accept;
+    }
+    
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
         transition accept;
     }
+    
 
 }
 
