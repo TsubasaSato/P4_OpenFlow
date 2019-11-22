@@ -39,6 +39,10 @@ header arp_t {
     /* empty */
 }
 
+struct metadata {
+   /* empty */
+}
+
 struct headers {
     ethernet_t   ethernet;
     ipv4_t       ipv4;
