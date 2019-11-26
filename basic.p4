@@ -110,7 +110,6 @@ control MyIngress(inout headers hdr,
 	(0x0a000102/32) : ipv4_forward(0x001b21bb23c0,0x2);
 	(0x0a000101/32) : ipv4_forward(0xa0369fa0ecac,0x1);
 	}
-        size = 1024;
         default_action = drop();
     }
     
