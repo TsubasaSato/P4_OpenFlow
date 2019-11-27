@@ -3,7 +3,9 @@
 #include <core.p4>
 #include <v1model.p4>
 
-/* This program is for ARP */
+/* This program is for ARP 
+ * Original program is https://github.com/p4lang/p4c/blob/master/testdata/p4_16_bmv_errors/issue610-bmv2.p4#L104
+*/
 
 /*************************************************************************
  ***********************  C O N S T A N T S  *****************************
@@ -230,12 +232,8 @@ control MyIngress(
         }
         const default_action = drop();
         const entries = {
-            ( true, ARP_OPER_REQUEST, true, false, false, _  ) :
-                                                         send_arp_reply();
-            ( false, _,               false, true, false, _  ) :
-                                                         forward_ipv4();
-            ( false, _,               false, true, true, ICMP_ECHO_REQUEST ) :
-                                                         send_icmp_reply();
+            ( true, ARP_OPER_REQUEST, true, false ) : send_arp_reply();
+            ( false, _,               false, true ) : forward_ipv4();
         }
     }
 
