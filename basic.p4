@@ -107,8 +107,8 @@ control MyIngress(inout headers hdr,
             NoAction;
         }
 	const entries ={
-	0x0a000102 &&& 0x20 : ipv4_forward(0x001b21bb23c0,0x2);
-	0x0a000101 &&& 0x20 : ipv4_forward(0xa0369fa0ecac,0x1);
+	0x0a000102 : ipv4_forward(0x001b21bb23c0,0x2);
+	0x0a000101 : ipv4_forward(0xa0369fa0ecac,0x1);
 	}
         default_action = drop();
     }
