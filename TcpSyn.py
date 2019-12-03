@@ -85,7 +85,10 @@ class TCPSYN13(app_manager.RyuApp):
         #TableID:3 UNCHECK_TCP
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+        #Write tableID to Metadata...
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions),
+               parser.OFPInstructionWriteMetadata(3,5)]
+        
         datapath.send_msg(self.create_flow_mod(datapath,1,3,match,inst)) 
      
         #TableID:4 FORWARDING
