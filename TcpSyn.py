@@ -137,6 +137,17 @@ class TCPSYN13(app_manager.RyuApp):
          )
         payload_data = b'arbitrary'  # as a raw binary
         pkt_in.add_protocol(payload_data)
+        
+        print('*** constructed packet')
+        print(pkt_in)
+        print('*** binary of constructed packet')
+        print(binary_str(pkt_in.data))
+        print('*** parsed packet')
+        pkt_out = packet.Packet(pkt_in.data)
+        print(pkt_out)
+        print('*** get payload of TCP')
+        print(pkt_out.protocols[-1])
+        
         self.send_packet(datapath,port,pkt_in)
         
     def _send_packet(self, datapath, port, pkt):
