@@ -6,19 +6,25 @@ from ryu.lib.packet import ipv4
 from ryu.lib.packet import tcp
 
 pkt_in = packet.Packet()
+
+# 入ってきたパケットの取得方法を知る必要あり
+
+# 入ってきたパケットのMacを入れる
 pkt_in.add_protocol(
     ethernet.ethernet(
         dst='11:22:33:44:55:66',
         src='aa:bb:cc:dd:ee:ff',
     ),
 )
+# 入ってきたパケットのIPを入れる
 pkt_in.add_protocol(
     ipv4.ipv4(
-        dst='10.0.0.1',
-        src='10.0.0.2',
+        dst='10.0.1.1',
+        src='10.0.1.2',
         proto=in_proto.IPPROTO_TCP,
     ),
 )
+# 入ってきたパケットのTCP情報を入れる
 pkt_in.add_protocol(
     tcp.tcp(
         src_port=50080,
