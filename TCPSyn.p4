@@ -54,7 +54,7 @@ header tcp_t {
 }
 
 struct metadata {
-    /* empty */
+    bit<2048> index;
 }
 
 struct headers {
@@ -116,8 +116,8 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
     
     // Must change known_hosts's name to state name!
-    register<bit<1>>(4096) known_hosts_syn;
-    register<bit<1>>(4096) known_hosts_rst;
+    register<bit<1>>(2048) known_hosts_syn;
+    register<bit<1>>(2048) known_hosts_rst;
     
     action drop() {
         mark_to_drop(standard_metadata);
@@ -150,8 +150,7 @@ control MyIngress(inout headers hdr,
     
     
     apply {
-    // flow_id is 4096bit
-    // meta.flow_id = hash(5 - tuple)
+        meta.flow_id = hash(5 - tuple)
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
                 if (hdr.tcp.syn == 1) {
