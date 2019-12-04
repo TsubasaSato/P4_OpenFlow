@@ -54,7 +54,7 @@ header tcp_t {
 }
 
 struct metadata {
-    bit<2048> index;
+    
 }
 
 struct headers {
@@ -150,7 +150,7 @@ control MyIngress(inout headers hdr,
     
     
     apply {
-        meta.flow_id = hash(5 - tuple)
+        bit<2048> index = hash(5 - tuple);
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
                 if (hdr.tcp.syn == 1) {
