@@ -140,7 +140,7 @@ control MyIngress(inout headers hdr,
     	checking_hosts_syn.write(meta.index,1w1);
 	
 	// Swap src_mac,ip,port and dst_mac,ip,port
-	// Change acknumber テスト佐藤あああ
+	// Change acknumber
 	standard_metadata.egress_spec = standard_metadata.ingress_port;
 	hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
 	hdr.ipv4.dstAddr = hdr.ipv4.srcAddr;
@@ -174,7 +174,7 @@ control MyIngress(inout headers hdr,
             NoAction;
         }
 	const entries ={
-        (0x0a000102, _ , _ , 1 , _) : ipv4_forward(0x001b21bb23c0,0x2);
+        (0x0a000102,  ,  , 1 , ) : ipv4_forward(0x001b21bb23c0,0x2);
 	(0x0a000101, _ , _ , 1 , _) : ipv4_forward(0xa0369fa0ecac,0x1);
 	(_, 1 , 0 , 0 , 0) : reg_syn_gen_synack();
 	(_, 0 , 1 , 0 , 1) : reg_rst();
