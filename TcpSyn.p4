@@ -213,7 +213,7 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
-		hash(meta.index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65536);
+		hash(meta.index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65535);
 		// Check checked_hosts_rst
 		checked_hosts_rst.read(meta.ok,meta.index);
 		if (meta.ok!=1){
