@@ -173,18 +173,17 @@ control MyIngress(inout headers hdr,
 	}
     table auth {
         key = {
-            hdr.tcp.syn:EXACT;
-	    hdr.tcp.rst:EXACT;
+            hdr.tcp.syn : exact;
+	    hdr.tcp.rst : exact;
         }
         actions = {
-            generate_syn_ack;
-	    register_syn;
-	    register_rst;
+	    reg_syn_gen_synack;
+	    reg_rst;
             drop;
             NoAction;
         }
 	const entries ={
-	(1,0):reg_syn_gnrtr_synack();
+	(1,0):reg_syn_gen_synack();
 	(0,1):reg_rst();
 	}
         default_action = drop();
