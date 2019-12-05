@@ -184,10 +184,12 @@ control MyIngress(inout headers hdr,
     }
     
     apply {
-        bit<16> index;
-	hash(index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65536);
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
+		bit<16> index;
+		hash(index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65536);
+		// read checked_host_rst
+		if ()
                 if (hdr.tcp.syn == 1) {
                 
 		generate_syn_ack();
