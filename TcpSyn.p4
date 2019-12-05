@@ -131,7 +131,7 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
     
-    table ipv4_forwarding {
+    table ipv4_lpm {
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
@@ -221,7 +221,7 @@ control MyIngress(inout headers hdr,
 			exit;
 		}
             }
-        ipv4_forwarding.apply();
+        ipv4_lpm.apply();
         }
     }
 }
