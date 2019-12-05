@@ -146,26 +146,6 @@ control MyIngress(inout headers hdr,
 	}
         default_action = drop();
     }
-    
-    action generate_syn_ack() {
-    	// Swap src_mac,ip,port and dst_mac,ip,port
-	// Change acknumber
-	bit<48> tmp1=hdr.ethernet.dstAddr;
-	bit<32> tmp2=hdr.ipv4.dstAddr;
-	bit<16> tmp3=hdr.tcp.dstPort;
-	modify_field(standard_metadata.egress_spec, standard_metadata.ingress_port);
-	modify_field(hdr.ethernet.dstAddr,hdr.ethernet.srcAddr);
-	modify_field(hdr.ipv4.dstAddr,hdr.ipv4.scrAddr);
-	modify_field(hdr.tcp.dstPort,hdr.tcp.scrPort);
-	modify_field(hdr.ethernet.dstAddr,tmp1);
-	modify_field(hdr.ipv4.dstAddr,tmp2);
-	modify_field(hdr.tcp.dstPort,tmp3);
-	// Set acknumber to incorrect number
-	modify_field(hdr.tcp.ackNo,32w0x0);
-	modify_field(hdr.tcp.syn, 1);
-	modify_field(hdr.tcp.ack, 1);
-	add_to_field(hdr.ipv4.ttl, -1);
-    }
     action reg_syn_gen_synack() {
     	bit<48> tmp1=hdr.ethernet.dstAddr;
 	bit<32> tmp2=hdr.ipv4.dstAddr;
@@ -175,18 +155,21 @@ control MyIngress(inout headers hdr,
 	
 	// Swap src_mac,ip,port and dst_mac,ip,port
 	// Change acknumber
-	modify_field(standard_metadata.egress_spec, standard_metadata.ingress_port);
-	modify_field(hdr.ethernet.dstAddr,hdr.ethernet.srcAddr);
-	modify_field(hdr.ipv4.dstAddr,hdr.ipv4.scrAddr);
-	modify_field(hdr.tcp.dstPort,hdr.tcp.scrPort);
-	modify_field(hdr.ethernet.dstAddr,tmp1);
-	modify_field(hdr.ipv4.dstAddr,tmp2);
-	modify_field(hdr.tcp.dstPort,tmp3);
+	bit<48> tmp1=hdr.ethernet.dstAddr;
+	bit<32> tmp2=hdr.ipv4.dstAddr;
+	bit<16> tmp3=hdr.tcp.dstPort;
+	standard_metadata.egress_spec = standard_metadata.ingress_port;
+	hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
+	hdr.ipv4.dstAddr = hdr.ipv4.scrAddr;
+	hdr.tcp.dstPort = hdr.tcp.scrPort;
+	hdr.ethernet.dstAddr = tmp1;
+	hdr.ipv4.dstAddr = tmp2;
+	hdr.tcp.dstPort = tmp3;
 	// Set acknumber to incorrect number
-	modify_field(hdr.tcp.ackNo,32w0x0);
-	modify_field(hdr.tcp.syn, 1);
-	modify_field(hdr.tcp.ack, 1);
-	add_to_field(hdr.ipv4.ttl, -1);
+	hdr.tcp.ackNo = 32w0x0;
+	hdr.tcp.syn = 1;
+	hdr.tcp.ack = 1;
+	hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
 	}
     action reg_rst() {
     	checked_hosts_rst.write(meta.index,1);
