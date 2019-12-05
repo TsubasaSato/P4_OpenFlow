@@ -54,7 +54,8 @@ header tcp_t {
 }
 
 struct metadata {
-    
+    bit<16> index;
+    bit<1>  ok;
 }
 
 struct headers {
@@ -130,7 +131,7 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
     
-    table ipv4_lpm {
+    table ipv4_forwarding {
         key = {
             hdr.ipv4.dstAddr: lpm;
         }
@@ -165,20 +166,27 @@ control MyIngress(inout headers hdr,
 	modify_field(hdr.tcp.ack, 1);
 	add_to_field(hdr.ipv4.ttl, -1);
     }
-    action 
-    table authentication {
+    action register_syn() {
+    	checked_hosts_syn.write(meta.index,1)
+	}
+    action register_rst() {
+    	checked_hosts_rst.write(meta.index,1)
+	}
+    table auth {
         key = {
             hdr.tcp.syn:EXACT;
 	    hdr.tcp.rst:EXACT;
         }
         actions = {
             generate_syn_ack;
+	    register_syn;
+	    register_rst;
             drop;
             NoAction;
         }
 	const entries ={
-	0x0a000102 : ipv4_forward(0x001b21bb23c0,0x2);
-	0x0a000101 : ipv4_forward(0xa0369fa0ecac,0x1);
+	(1,0):register_syn(),generate_syn_ack();
+	(0,1):register_rst();
 	}
         default_action = drop();
     }
@@ -186,20 +194,15 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
-		bit<16> index;
-		hash(index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65536);
-		// read checked_host_rst
-		if ()
-                if (hdr.tcp.syn == 1) {
-                
-		generate_syn_ack();
-		exit;
-                } else if (hdr.tcp.rst == 1) {
-                //known_host
-		exit;
-                }
+		hash(meta.index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65536);
+		// Check checked_hosts_rst
+		checked_hosts_rst.read(meta.ok,meta.index);
+		if (meta.ok!=1){
+                	auth.apply();
+			exit;
+		}
             }
-        ipv4_lpm.apply();
+        ipv4_forwarding.apply();
         }
     }
 }
@@ -235,7 +238,22 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
               hdr.ipv4.dstAddr },
             hdr.ipv4.hdrChecksum,
             HashAlgorithm.csum16);
-	    
+
+	update_checksum(
+	    hdr.tcp.isValid(),
+            { hdr.ipv4.version,
+	      hdr.ipv4.ihl,
+              hdr.ipv4.diffserv,
+              hdr.ipv4.totalLen,
+              hdr.ipv4.identification,
+              hdr.ipv4.flags,
+              hdr.ipv4.fragOffset,
+              hdr.ipv4.ttl,
+              hdr.ipv4.protocol,
+              hdr.ipv4.srcAddr,
+              hdr.ipv4.dstAddr },
+            hdr.ipv4.hdrChecksum,
+            HashAlgorithm.csum16);
 	// Must check TCP header here
 	    
     }
