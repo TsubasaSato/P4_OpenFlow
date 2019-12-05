@@ -116,8 +116,8 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
     
     // Must change known_hosts's name to state name!
-    register<bit<1>>(4096) checking_hosts_syn;
-    register<bit<1>>(4096) checked_hosts_rst;
+    register<bit<1>>(65536) checking_hosts_syn;
+    register<bit<1>>(65536) checked_hosts_rst;
     
     action drop() {
         mark_to_drop(standard_metadata);
@@ -146,7 +146,7 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
     
-    action generate_syn_ack() 
+    action generate_syn_ack() {
     	// Swap src_mac,ip,port and dst_mac,ip,port
 	// Change acknumber
 	bit<48> tmp1=hdr.ethernet.dstAddr;
@@ -165,14 +165,31 @@ control MyIngress(inout headers hdr,
 	modify_field(hdr.tcp.ack, 1);
 	add_to_field(hdr.ipv4.ttl, -1);
     }
-    
+    action 
+    table authentication {
+        key = {
+            hdr.tcp.syn:EXACT;
+	    hdr.tcp.rst:EXACT;
+        }
+        actions = {
+            generate_syn_ack;
+            drop;
+            NoAction;
+        }
+	const entries ={
+	0x0a000102 : ipv4_forward(0x001b21bb23c0,0x2);
+	0x0a000101 : ipv4_forward(0xa0369fa0ecac,0x1);
+	}
+        default_action = drop();
+    }
     
     apply {
-        bit<4096> index = hash(5 - tuple);
+        bit<16> index;
+	hash(index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65536);
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
                 if (hdr.tcp.syn == 1) {
-                //k
+                
 		generate_syn_ack();
 		exit;
                 } else if (hdr.tcp.rst == 1) {
