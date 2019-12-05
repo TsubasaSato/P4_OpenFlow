@@ -116,8 +116,8 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
     
     // Must change known_hosts's name to state name!
-    register<bit<1>>(2048) known_hosts_syn;
-    register<bit<1>>(2048) known_hosts_rst;
+    register<bit<1>>(4096) checking_hosts_syn;
+    register<bit<1>>(4096) checked_hosts_rst;
     
     action drop() {
         mark_to_drop(standard_metadata);
@@ -146,17 +146,38 @@ control MyIngress(inout headers hdr,
         default_action = drop();
     }
     
-    action 
+    action generate_syn_ack() 
+    	// Swap src_mac,ip,port and dst_mac,ip,port
+	// Change acknumber
+	bit<48> tmp1=hdr.ethernet.dstAddr;
+	bit<32> tmp2=hdr.ipv4.dstAddr;
+	bit<16> tmp3=hdr.tcp.dstPort;
+	modify_field(standard_metadata.egress_spec, standard_metadata.ingress_port);
+	modify_field(hdr.ethernet.dstAddr,hdr.ethernet.srcAddr);
+	modify_field(hdr.ipv4.dstAddr,hdr.ipv4.scrAddr);
+	modify_field(hdr.tcp.dstPort,hdr.tcp.scrPort);
+	modify_field(hdr.ethernet.dstAddr,tmp1);
+	modify_field(hdr.ipv4.dstAddr,tmp2);
+	modify_field(hdr.tcp.dstPort,tmp3);
+	// Set ackNo to incorrect number
+	modify_field(hdr.tcp.ackNo,32w0x0);
+	modify_field(hdr.tcp.syn, 1);
+	modify_field(hdr.tcp.ack, 1);
+	add_to_field(hdr.ipv4.ttl, -1);
+    }
     
     
     apply {
-        bit<2048> index = hash(5 - tuple);
+        bit<4096> index = hash(5 - tuple);
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
                 if (hdr.tcp.syn == 1) {
-                //known_host
+                //k
+		generate_syn_ack();
+		exit;
                 } else if (hdr.tcp.rst == 1) {
                 //known_host
+		exit;
                 }
             }
         ipv4_lpm.apply();
@@ -195,6 +216,9 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
               hdr.ipv4.dstAddr },
             hdr.ipv4.hdrChecksum,
             HashAlgorithm.csum16);
+	    
+	// Must check TCP header here
+	    
     }
 }
 
