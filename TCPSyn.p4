@@ -116,7 +116,7 @@ control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
     
-    // Must change known_hosts's name to state name!
+    // Save state in these register.
     register<bit<1>>(65536) checking_hosts_syn;
     register<bit<1>>(65536) checked_hosts_rst;
     
@@ -160,7 +160,7 @@ control MyIngress(inout headers hdr,
 	modify_field(hdr.ethernet.dstAddr,tmp1);
 	modify_field(hdr.ipv4.dstAddr,tmp2);
 	modify_field(hdr.tcp.dstPort,tmp3);
-	// Set ackNo to incorrect number
+	// Set acknumber to incorrect number
 	modify_field(hdr.tcp.ackNo,32w0x0);
 	modify_field(hdr.tcp.syn, 1);
 	modify_field(hdr.tcp.ack, 1);
@@ -241,20 +241,23 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 
 	update_checksum(
 	    hdr.tcp.isValid(),
-            { hdr.ipv4.version,
-	      hdr.ipv4.ihl,
-              hdr.ipv4.diffserv,
-              hdr.ipv4.totalLen,
-              hdr.ipv4.identification,
-              hdr.ipv4.flags,
-              hdr.ipv4.fragOffset,
-              hdr.ipv4.ttl,
-              hdr.ipv4.protocol,
-              hdr.ipv4.srcAddr,
-              hdr.ipv4.dstAddr },
-            hdr.ipv4.hdrChecksum,
+            { hdr.tcp.srcPort,
+	      hdr.tcp.dstPort,
+              hdr.tcp.seqNo,
+              hdr.tcp.ackNo,
+              hdr.tcp.dataOffset,
+              hdr.tcp.res,
+              hdr.tcp.ecn,
+              hdr.tcp.urg,
+              hdr.tcp.ack,
+              hdr.tcp.psh,
+              hdr.tcp.rst,
+	      hdr.tcp.syn,
+	      hdr.tcp.fin,
+	      hdr.tcp.window,
+	      hdr.tcp.urgetnPtr },
+            hdr.tcp.checksum,
             HashAlgorithm.csum16);
-	// Must check TCP header here
 	    
     }
 }
@@ -267,6 +270,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
+	packet.emit(hdr.tcp)
     }
 }
 
