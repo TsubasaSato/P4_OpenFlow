@@ -166,10 +166,29 @@ control MyIngress(inout headers hdr,
 	modify_field(hdr.tcp.ack, 1);
 	add_to_field(hdr.ipv4.ttl, -1);
     }
-    action register_syn() {
+    action reg_syn_gen_synack() {
+    	bit<48> tmp1=hdr.ethernet.dstAddr;
+	bit<32> tmp2=hdr.ipv4.dstAddr;
+	bit<16> tmp3=hdr.tcp.dstPort;
+   
     	checked_hosts_syn.write(meta.index,1);
+	
+	// Swap src_mac,ip,port and dst_mac,ip,port
+	// Change acknumber
+	modify_field(standard_metadata.egress_spec, standard_metadata.ingress_port);
+	modify_field(hdr.ethernet.dstAddr,hdr.ethernet.srcAddr);
+	modify_field(hdr.ipv4.dstAddr,hdr.ipv4.scrAddr);
+	modify_field(hdr.tcp.dstPort,hdr.tcp.scrPort);
+	modify_field(hdr.ethernet.dstAddr,tmp1);
+	modify_field(hdr.ipv4.dstAddr,tmp2);
+	modify_field(hdr.tcp.dstPort,tmp3);
+	// Set acknumber to incorrect number
+	modify_field(hdr.tcp.ackNo,32w0x0);
+	modify_field(hdr.tcp.syn, 1);
+	modify_field(hdr.tcp.ack, 1);
+	add_to_field(hdr.ipv4.ttl, -1);
 	}
-    action register_rst() {
+    action reg_rst() {
     	checked_hosts_rst.write(meta.index,1);
 	}
     table auth {
@@ -185,8 +204,8 @@ control MyIngress(inout headers hdr,
             NoAction;
         }
 	const entries ={
-	(1,0):register_syn(),generate_syn_ack();
-	(0,1):register_rst();
+	(1,0):reg_syn_gnrtr_synack();
+	(0,1):reg_rst();
 	}
         default_action = drop();
     }
