@@ -179,6 +179,7 @@ control MyIngress(inout headers hdr,
         key = {
             hdr.tcp.syn : exact;
 	    hdr.tcp.rst : exact;
+	    meta.rst_ok : exact;
         }
         actions = {
 	    reg_syn_gen_synack;
@@ -187,8 +188,9 @@ control MyIngress(inout headers hdr,
             NoAction;
         }
 	const entries ={
-	(1,0):reg_syn_gen_synack();
-	(0,1):reg_rst();
+	(1,0,0) : reg_syn_gen_synack();
+	(0,1,0) : reg_rst();
+	(_,_,1) : ipv4_lpm.apply();
 	}
         default_action = drop();
     }
@@ -199,12 +201,9 @@ control MyIngress(inout headers hdr,
 		hash(meta.index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65535);
 		// Check checked_hosts_rst
 		checked_hosts_rst.read(meta.rst_ok,meta.index);
-		if (meta.rst_ok!=1){
-                	auth.apply();
-			exit;
-		}
+		auth.apply();
+		exit;
             }
-        ipv4_lpm.apply();
         }
     }
 }
