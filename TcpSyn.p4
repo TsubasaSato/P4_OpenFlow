@@ -155,9 +155,6 @@ control MyIngress(inout headers hdr,
 	
 	// Swap src_mac,ip,port and dst_mac,ip,port
 	// Change acknumber
-	bit<48> tmp1=hdr.ethernet.dstAddr;
-	bit<32> tmp2=hdr.ipv4.dstAddr;
-	bit<16> tmp3=hdr.tcp.dstPort;
 	standard_metadata.egress_spec = standard_metadata.ingress_port;
 	hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
 	hdr.ipv4.dstAddr = hdr.ipv4.scrAddr;
