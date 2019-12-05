@@ -54,7 +54,7 @@ header tcp_t {
 }
 
 struct metadata {
-    bit<16> index;
+    bit<32> index;
     bit<1>  syn_ok;
     bit<1>  rst_ok;
 }
@@ -152,7 +152,7 @@ control MyIngress(inout headers hdr,
 	bit<32> tmp2=hdr.ipv4.dstAddr;
 	bit<16> tmp3=hdr.tcp.dstPort;
    
-    	checking_hosts_syn.write(meta.index,1);
+    	checking_hosts_syn.write(meta.index,1w1);
 	
 	// Swap src_mac,ip,port and dst_mac,ip,port
 	// Change acknumber テスト佐藤あああ
@@ -198,7 +198,7 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
-		hash(meta.index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65535);
+		hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65535);
 		// Check checked_hosts_rst
 		checked_hosts_rst.read(meta.rst_ok,meta.index);
 		auth.apply();
