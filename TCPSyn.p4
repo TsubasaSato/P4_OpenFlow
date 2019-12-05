@@ -167,10 +167,10 @@ control MyIngress(inout headers hdr,
 	add_to_field(hdr.ipv4.ttl, -1);
     }
     action register_syn() {
-    	checked_hosts_syn.write(meta.index,1)
+    	checked_hosts_syn.write(meta.index,1);
 	}
     action register_rst() {
-    	checked_hosts_rst.write(meta.index,1)
+    	checked_hosts_rst.write(meta.index,1);
 	}
     table auth {
         key = {
@@ -270,7 +270,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
         packet.emit(hdr.ipv4);
-	packet.emit(hdr.tcp)
+	packet.emit(hdr.tcp);
     }
 }
 
