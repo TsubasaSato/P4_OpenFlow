@@ -88,7 +88,7 @@ parser MyParser(packet_in packet,
 
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
-        transition select(hdr.ipv4.tcp) {
+        transition select(hdr.ipv4.protocol) {
             TYPE_TCP: parse_tcp;
             default: accept;
         }
@@ -158,8 +158,8 @@ control MyIngress(inout headers hdr,
 	// Change acknumber テスト佐藤あああ
 	standard_metadata.egress_spec = standard_metadata.ingress_port;
 	hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
-	hdr.ipv4.dstAddr = hdr.ipv4.scrAddr;
-	hdr.tcp.dstPort = hdr.tcp.scrPort;
+	hdr.ipv4.dstAddr = hdr.ipv4.srcAddr;
+	hdr.tcp.dstPort = hdr.tcp.srcPort;
 	hdr.ethernet.dstAddr = tmp1;
 	hdr.ipv4.dstAddr = tmp2;
 	hdr.tcp.dstPort = tmp3;
@@ -198,7 +198,7 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
-		hash(meta.index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},16w65535);
+		hash(meta.index,HashAlgorithm.crc16,16w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65535);
 		// Check checked_hosts_rst
 		checked_hosts_rst.read(meta.rst_ok,meta.index);
 		auth.apply();
