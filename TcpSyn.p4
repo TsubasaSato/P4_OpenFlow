@@ -245,7 +245,7 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 	      hdr.tcp.syn,
 	      hdr.tcp.fin,
 	      hdr.tcp.window,
-	      hdr.tcp.urgetnPtr },
+	      hdr.tcp.urgentPtr },
             hdr.tcp.checksum,
             HashAlgorithm.csum16);
 	    
