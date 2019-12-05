@@ -155,10 +155,7 @@ control MyIngress(inout headers hdr,
 	hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
     action reg_rst() {
-        checking_hosts_syn.read(meta.syn_ok,meta.index);
-    	if (meta.syn_ok==1){
-    		checked_hosts_rst.write(meta.index,1);
-	}
+    	checked_hosts_rst.write(meta.index,1);
     }
     table auth {
         key = {
@@ -166,6 +163,7 @@ control MyIngress(inout headers hdr,
             hdr.tcp.syn : exact;
 	    hdr.tcp.rst : exact;
 	    meta.rst_ok : exact;
+	    meta.syn_ok : exact;
 	    
         }
         actions = {
@@ -176,10 +174,10 @@ control MyIngress(inout headers hdr,
             NoAction;
         }
 	const entries ={
-        (0x0a000102, 1, _ ,1) : ipv4_forward(0x001b21bb23c0,0x2);
-	(0x0a000101, 1, _ ,1) : ipv4_forward(0xa0369fa0ecac,0x1);
-	(_, 1 , 0 , 0) : reg_syn_gen_synack();
-	(_, 0 , 1 , 0) : reg_rst();
+        (0x0a000102, _ , _ , 1 , _) : ipv4_forward(0x001b21bb23c0,0x2);
+	(0x0a000101, _ , _ , 1 , _) : ipv4_forward(0xa0369fa0ecac,0x1);
+	(_, 1 , 0 , 0 , 0) : reg_syn_gen_synack();
+	(_, 0 , 1 , 0 , 1) : reg_rst();
 	}
         default_action = drop();
     }
@@ -190,6 +188,7 @@ control MyIngress(inout headers hdr,
 		hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
 		// Check checked_hosts_rst
 		checked_hosts_rst.read(meta.rst_ok,meta.index);
+		checking_hosts_syn.read(meta.syn_ok,meta.index);
 		auth.apply();
 		exit;
             }
