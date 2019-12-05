@@ -160,10 +160,10 @@ control MyIngress(inout headers hdr,
     table auth {
         key = {
 	    hdr.ipv4.dstAddr: lpm;
-            hdr.tcp.syn : exact;
-	    hdr.tcp.rst : exact;
+            hdr.tcp.syn : ternary;
+	    hdr.tcp.rst : ternary;
 	    meta.rst_ok : exact;
-	    meta.syn_ok : exact;
+	    meta.syn_ok : ternary;
 	    
         }
         actions = {
@@ -174,8 +174,8 @@ control MyIngress(inout headers hdr,
             NoAction;
         }
 	const entries ={
-        (0x0a000102, 1, 0 , 1 , 1) : ipv4_forward(0x001b21bb23c0,0x2);
-	(0x0a000101, 1 , 0 , 1 , 1) : ipv4_forward(0xa0369fa0ecac,0x1);
+        (0x0a000102, _ , _ , 1 , _) : ipv4_forward(0x001b21bb23c0,0x2);
+	(0x0a000101, _ , _ , 1 , _) : ipv4_forward(0xa0369fa0ecac,0x1);
 	(_, 1 , 0 , 0 , 0) : reg_syn_gen_synack();
 	(_, 0 , 1 , 0 , 1) : reg_rst();
 	}
