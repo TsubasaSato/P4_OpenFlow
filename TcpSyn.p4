@@ -95,7 +95,7 @@ parser MyParser(packet_in packet,
     
     state parse_tcp {
         packet.extract(hdr.tcp);
-        default: accept;
+        transition accept;
     }
 }
 
