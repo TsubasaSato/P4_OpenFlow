@@ -26,14 +26,10 @@ from ryu.lib.packet import ether_types
 from ryu.lib.packet import ipv4
 from ryu.lib.packet import tcp
 
+# Connect from SERVER1
+
 class TCPSYN13(app_manager.RyuApp):
     OFP_VERSIONS = [ofproto_v1_3.OFP_VERSION]
-    #TCP_flags values
-    TCP_SYN = 0x002
-    TCP_RST = 0x004
-    TCP_PSH = 0x008
-    TCP_ACK = 0x010
-    TCP_SYN_ACK = 0x012
     
     def __init__(self, *args, **kwargs):
         super(TCPSYN13, self).__init__(*args, **kwargs)
@@ -86,7 +82,8 @@ class TCPSYN13(app_manager.RyuApp):
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         datapath.send_msg(self.create_flow_mod(datapath,1,3,match,inst)) 
      
-        #TableID:4 FORWARDING
+        #TableID:4 FORWARDING 2 => 1
+        actions = [parser.OFPActionOutput(port=1)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         datapath.send_msg(self.create_flow_mod(datapath,1,4,match,inst)) 
 
@@ -104,7 +101,7 @@ class TCPSYN13(app_manager.RyuApp):
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         if pkt_tcp:
-            self._handle_icmp(datapath, port, pkt_ethernet, pkt_ipv4, pkt_tcp)
+            
             return
     #check pkt_tcp.syn ?
     def _handle_tcp_syn(self, datapath, port, pkt_ethernet, pkt_ipv4, pkt_tcp):
@@ -141,10 +138,8 @@ class TCPSYN13(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         
-        #Flow mod
-        #Want to forward action...
-        actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
-                                          ofproto.OFPCML_NO_BUFFER)]
+        #Flow mod , Fowarding action Port:2 => Port:1
+        actions = [parser.OFPActionOutput(port=1)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         match = parser.OFPMatch(eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
                                    ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
