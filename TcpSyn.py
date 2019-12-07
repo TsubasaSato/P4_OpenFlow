@@ -101,9 +101,13 @@ class TCPSYN13(app_manager.RyuApp):
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         if pkt_tcp:
-            
-            return
-    #check pkt_tcp.syn ?
+            if pkt_tcp.has_flags(tcp.TCP_SYN):
+                _handle_tcp_syn(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
+            elif pkt_tcp.has_flags(tcp.TCP_RST):
+                _handle_tcp_rst(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
+            else:
+                return
+
     def _handle_tcp_syn(self, datapath, port, pkt_ethernet, pkt_ipv4, pkt_tcp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -133,7 +137,6 @@ class TCPSYN13(app_manager.RyuApp):
         pkt_out = packet.Packet(pkt_in.data)
         print(pkt_out)
         
-    #check pkt_tcp.rst ?
     def _handle_tcp_rst(self, datapath, port, pkt_ethernet, pkt_ipv4, pkt_tcp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
