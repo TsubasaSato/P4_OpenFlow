@@ -87,27 +87,20 @@ class TCPSYN13(app_manager.RyuApp):
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         datapath.send_msg(self.create_flow_mod(datapath,1,4,match,inst)) 
 
-    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
-    def _packet_in_handler(self, ev):
-        msg = ev.msg
-        datapath = msg.datapath
-        port = msg.match['in_port']
-        pkt = packet.Packet(data=msg.data)
-        self.logger.info("packet-in %s" % (pkt,))
-        # Parse packet
-        pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
-        if not pkt_ethernet:
-            return
-        pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
-        pkt_tcp = pkt.get_protocol(tcp.tcp)
-        if pkt_tcp:
-            if pkt_tcp.has_flags(tcp.TCP_SYN):
-                _handle_tcp_syn(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
-            elif pkt_tcp.has_flags(tcp.TCP_RST):
-                _handle_tcp_rst(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
-        else:
-            return
-
+    def _send_packet(self, datapath, port, pkt):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+        pkt.serialize()
+        self.logger.info("packet-out %s" % (pkt,))
+        data = pkt.data
+        actions = [parser.OFPActionOutput(port=port)]
+        out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  in_port=ofproto.OFPP_CONTROLLER,
+                                  actions=actions,
+                                  data=data)
+        datapath.send_msg(out)
+        
     def _handle_tcp_syn(self, datapath, port, pkt_ethernet, pkt_ipv4, pkt_tcp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -148,17 +141,24 @@ class TCPSYN13(app_manager.RyuApp):
                                    ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
                                    tcp_dst=pkt_tcp.dst,tcp_src=pkt_tcp.src)
         datapath.send_msg(self.create_flow_mod(datapath,10,1,match,inst))
-
-    def _send_packet(self, datapath, port, pkt):
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-        pkt.serialize()
-        self.logger.info("packet-out %s" % (pkt,))
-        data = pkt.data
-        actions = [parser.OFPActionOutput(port=port)]
-        out = parser.OFPPacketOut(datapath=datapath,
-                                  buffer_id=ofproto.OFP_NO_BUFFER,
-                                  in_port=ofproto.OFPP_CONTROLLER,
-                                  actions=actions,
-                                  data=data)
-        datapath.send_msg(out)
+        
+    @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
+    def _packet_in_handler(self, ev):
+        msg = ev.msg
+        datapath = msg.datapath
+        port = msg.match['in_port']
+        pkt = packet.Packet(data=msg.data)
+        self.logger.info("packet-in %s" % (pkt,))
+        # Parse packet
+        pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
+        if not pkt_ethernet:
+            return
+        pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
+        pkt_tcp = pkt.get_protocol(tcp.tcp)
+        if pkt_tcp:
+            if pkt_tcp.has_flags(tcp.TCP_SYN):
+                _handle_tcp_syn(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
+            elif pkt_tcp.has_flags(tcp.TCP_RST):
+                _handle_tcp_rst(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
+        else:
+            return
