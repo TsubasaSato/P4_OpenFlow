@@ -136,13 +136,6 @@ class TCPSYN13(app_manager.RyuApp):
                                    tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
                 datapath.send_msg(self.create_flow_mod(datapath,10,2,match,inst))
         
-                print('*** constructed packet')
-                print(pkt_in)
-                print('*** binary of constructed packet')
-                print(binary_str(pkt_in.data))
-                print('*** parsed packet')
-                pkt_out = packet.Packet(pkt_in.data)
-                print(pkt_out)
             elif pkt_tcp.has_flags(tcp.TCP_RST):
                 #Flow mod , Fowarding action Port:2 => Port:1
                 actions = [parser.OFPActionOutput(port=1)]
