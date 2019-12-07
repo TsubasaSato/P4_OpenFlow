@@ -20,6 +20,7 @@ from ryu.controller import ofp_event
 from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER
 from ryu.controller.handler import set_ev_cls
 from ryu.ofproto import ofproto_v1_3
+from ryu.lib.ofproto import inet
 from ryu.lib.packet import packet
 from ryu.lib.packet import ethernet
 from ryu.lib.packet import ether_types
@@ -161,7 +162,7 @@ class TCPSYN13(app_manager.RyuApp):
                 #Swap Mac,IP,Port for PacketOut
                 pkt_in = packet.Packet()
                 pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
-                pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=in_proto.IPPROTO_TCP))
+                pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
                 #Incorrect SYN/ACK
                 pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst,dst_port=pkt_tcp.src,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
                 self._send_packet(datapath,port,pkt_in)
