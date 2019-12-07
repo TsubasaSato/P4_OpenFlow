@@ -146,6 +146,7 @@ class TCPSYN13(app_manager.RyuApp):
     def _packet_in_handler(self, ev):
         msg = ev.msg
         datapath = msg.datapath
+        parser = datapath.ofproto_parser
         port = msg.match['in_port']
         pkt = packet.Packet(data=msg.data)
         self.logger.info("packet-in %s" % (pkt,))
@@ -157,8 +158,37 @@ class TCPSYN13(app_manager.RyuApp):
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         if pkt_tcp:
             if pkt_tcp.has_flags(tcp.TCP_SYN):
-                _handle_tcp_syn(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
+                #Swap Mac,IP,Port for PacketOut
+                pkt_in = packet.Packet()
+                pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
+                pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=in_proto.IPPROTO_TCP))
+                #Incorrect SYN/ACK
+                pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst,dst_port=pkt_tcp.src,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
+                self._send_packet(datapath,port,pkt_in)
+        
+                #Flow mod
+                actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
+                                          ofproto.OFPCML_NO_BUFFER)]
+                inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+                match = parser.OFPMatch(eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
+                                   ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
+                                   tcp_dst=pkt_tcp.dst,tcp_src=pkt_tcp.src)
+                datapath.send_msg(self.create_flow_mod(datapath,10,2,match,inst))
+        
+                print('*** constructed packet')
+                print(pkt_in)
+                print('*** binary of constructed packet')
+                print(binary_str(pkt_in.data))
+                print('*** parsed packet')
+                pkt_out = packet.Packet(pkt_in.data)
+                print(pkt_out)
             elif pkt_tcp.has_flags(tcp.TCP_RST):
-                _handle_tcp_rst(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
+                #Flow mod , Fowarding action Port:2 => Port:1
+                actions = [parser.OFPActionOutput(port=1)]
+                inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+                match = parser.OFPMatch(eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
+                                   ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
+                                   tcp_dst=pkt_tcp.dst,tcp_src=pkt_tcp.src)
+                datapath.send_msg(self.create_flow_mod(datapath,10,1,match,inst))
         else:
             return
