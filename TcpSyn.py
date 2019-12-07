@@ -105,8 +105,8 @@ class TCPSYN13(app_manager.RyuApp):
                 _handle_tcp_syn(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
             elif pkt_tcp.has_flags(tcp.TCP_RST):
                 _handle_tcp_rst(datapath,port,pkt_ethernet,pkt_ipv4,pkt_tcp)
-            else:
-                return
+        else:
+            return
 
     def _handle_tcp_syn(self, datapath, port, pkt_ethernet, pkt_ipv4, pkt_tcp):
         ofproto = datapath.ofproto
