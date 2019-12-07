@@ -124,7 +124,7 @@ class TCPSYN13(app_manager.RyuApp):
                 pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
                 pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
                 #Incorrect SYN/ACK
-                pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst,dst_port=pkt_tcp.src,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
+                pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst_port,dst_port=pkt_tcp.src_port,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
                 self._send_packet(datapath,port,pkt_in)
         
                 #Flow mod
@@ -133,7 +133,7 @@ class TCPSYN13(app_manager.RyuApp):
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
                 match = parser.OFPMatch(eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
                                    ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
-                                   tcp_dst=pkt_tcp.dst,tcp_src=pkt_tcp.src)
+                                   tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
                 datapath.send_msg(self.create_flow_mod(datapath,10,2,match,inst))
         
                 print('*** constructed packet')
@@ -149,7 +149,7 @@ class TCPSYN13(app_manager.RyuApp):
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
                 match = parser.OFPMatch(eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
                                    ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
-                                   tcp_dst=pkt_tcp.dst,tcp_src=pkt_tcp.src)
+                                   tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
                 datapath.send_msg(self.create_flow_mod(datapath,10,1,match,inst))
         else:
             return
