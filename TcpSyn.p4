@@ -185,7 +185,8 @@ control MyIngress(inout headers hdr,
     apply {
         if (hdr.ipv4.isValid()) {
             if (hdr.tcp.isValid()) {
-		hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
+		hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
+						hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
 		// Check checked_hosts_rst
 		checked_hosts_rst.read(meta.rst_ok,meta.index);
 		checking_hosts_syn.read(meta.syn_ok,meta.index);
