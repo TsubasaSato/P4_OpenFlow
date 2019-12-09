@@ -49,7 +49,7 @@ header tcp_t {
     bit<1>  psh;
     bit<1>  rst;
     bit<1>  syn;
-    bit<1>  fin;
+    bit<1>  fin
     bit<16> window;
     bit<16> checksum;
     bit<16> urgentPtr;
@@ -139,14 +139,15 @@ control MyIngress(inout headers hdr,
         mark_to_drop(standard_metadata);
     }
     //↑OpenFlowのプログラムに関係なく必要
-#↓ 2.指定のIPを指定のPortに転送
+//↓ 2.指定のIPを指定のPortに転送
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
-#↑ 2.指定のIPを指定のPortに転送
+//↑ 2.指定のIPを指定のPortに転送
+//↓ 4.SYNフラグだった時の処理（FlowMod,Packet_out）
     action reg_syn_gen_synack() {
     	bit<48> tmp1=hdr.ethernet.dstAddr;
 	bit<32> tmp2=hdr.ipv4.dstAddr;
@@ -169,50 +170,64 @@ control MyIngress(inout headers hdr,
 	hdr.tcp.ack = 1;
 	hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
+//↑ 4.SYNフラグだった時の処理（FlowMod,Packet_out）
+//↓ 5.RSTフラグだった時の処理（FlowMod）
     action reg_rst() {
     	checked_hosts_rst.write(meta.index,1);
     }
+//↑ 5.RSTフラグだった時の処理（FlowMod)
     table auth {
         key = {
 	    hdr.ipv4.dstAddr: lpm;
+	    //↓ 4.SYNフラグを持つかどうか
             hdr.tcp.syn : ternary;
+	    //↑ 4.SYNフラグを持つかどうか
+	    //↓ 5.RSTフラグを持つかどうか
 	    hdr.tcp.rst : ternary;
+	    //↑ 5.RSTフラグを持つかどうか
 	    meta.rst_ok : exact;
 	    meta.syn_ok : ternary;
 	    
         }
         actions = {
-	#↓ 2.指定のIPを指定のPortに転送
+	//↓ 2.指定のIPを指定のPortに転送
             ipv4_forward;
-	#↑ 2.指定のIPを指定のPortに転送
+	//↑ 2.指定のIPを指定のPortに転送
 	    reg_syn_gen_synack;
 	    reg_rst;
             drop;
             NoAction;
         }
 	const entries ={
-	#↓ 2.指定のIPを指定のPortに転送
+	//↓ 2.指定のIPを指定のPortに転送
         (0x0a000102, _ , _ , 1 , _) : ipv4_forward(0x001b21bb23c0,0x2);
-	#↑ 2.指定のIPを指定のPortに転送
+	//↑ 2.指定のIPを指定のPortに転送
+	//↓ 4.SYNフラグだった時の処理（Packet_out）
 	(_, 1 , 0 , 0 , 0) : reg_syn_gen_synack();
+	//↑ 4.SYNフラグだった時の処理（Packet_out）
+	//↓ 5.RSTフラグだった時の処理（Packet_out）
 	(_, 0 , 1 , 0 , 1) : reg_rst();
+	//↑ 5.RSTフラグだった時の処理（Packet_out）
 	}
-	#↓OpenFlowのコードに関係なく必要
+	//↓OpenFlowのコードに関係なく必要
         default_action = drop();
-	#↑OpenFlowのコードに関係なく必要
+	//↑OpenFlowのコードに関係なく必要
     }
     
     apply {
         if (hdr.ipv4.isValid()) {
 //↓1.TCPかどうかの処理部分
             if (hdr.tcp.isValid()) {
+	        // ↓3.テーブルに存在するかどうか(FlowModで登録されるエントリ群)
 		hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 						hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-		// Check checked_hosts_rst
+		//checked_hosts_rstレジスタに登録したことがあるか
 		checked_hosts_rst.read(meta.rst_ok,meta.index);
+		//checking_hosts_synレジスタに登録したことがあるか
 		checking_hosts_syn.read(meta.syn_ok,meta.index);
 		auth.apply();
 		exit;
+		// ↑3.テーブルに存在するかどうか(FlowModで登録されるエントリ群)
             }
 //↑1.TCPかどうかの処理部分
 	    // Forwarding Process
@@ -233,7 +248,7 @@ control MyEgress(inout headers hdr,
 /*************************************************************************
 *************   C H E C K S U M    C O M P U T A T I O N   **************
 *************************************************************************/
-
+//↓OpenFlowのコードに関係なく必要
 control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
      apply {
 	update_checksum(
@@ -251,7 +266,7 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
               hdr.ipv4.dstAddr },
             hdr.ipv4.hdrChecksum,
             HashAlgorithm.csum16);
-
+//↓1.TCPかどうか
 	update_checksum(
 	    hdr.tcp.isValid(),
             { hdr.tcp.srcPort,
@@ -271,26 +286,28 @@ control MyComputeChecksum(inout headers  hdr, inout metadata meta) {
 	      hdr.tcp.urgentPtr },
             hdr.tcp.checksum,
             HashAlgorithm.csum16);
-	    
+//↑1.TCPかどうか
     }
 }
-
+//↑OpenFlowのコードに関係なく必要
 /*************************************************************************
 ***********************  D E P A R S E R  *******************************
 *************************************************************************/
-
+//↓OpenFlowのコードに関係なく必要
 control MyDeparser(packet_out packet, in headers hdr) {
     apply {
         packet.emit(hdr.ethernet);
+	//↓1.TCPかどうか
         packet.emit(hdr.ipv4);
 	packet.emit(hdr.tcp);
+	//↑1.TCPかどうか
     }
 }
-
+//↑OpenFlowのコードに関係なく必要
 /*************************************************************************
 ***********************  S W I T C H  *******************************
 *************************************************************************/
-
+//↓OpenFlowのコードに関係なく必要
 V1Switch(
 MyParser(),
 MyVerifyChecksum(),
@@ -299,3 +316,4 @@ MyEgress(),
 MyComputeChecksum(),
 MyDeparser()
 ) main;
+//↑OpenFlowのコードに関係なく必要
