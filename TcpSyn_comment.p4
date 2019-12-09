@@ -193,8 +193,12 @@ control MyIngress(inout headers hdr,
 	//↓ 2.指定のIPを指定のPortに転送
             ipv4_forward;
 	//↑ 2.指定のIPを指定のPortに転送
+	//↓ 4.SYNフラグだった時の処理（Flowmod,Packet_out）
 	    reg_syn_gen_synack;
+	//↑ 4.SYNフラグだった時の処理（Flowmod,Packet_out）
+	//↓ 5.RSTフラグだった時の処理（Packet_out）
 	    reg_rst;
+	//↑ 5.RSTフラグだった時の処理（Packet_out）
             drop;
             NoAction;
         }
@@ -202,9 +206,9 @@ control MyIngress(inout headers hdr,
 	//↓ 2.指定のIPを指定のPortに転送
         (0x0a000102, _ , _ , 1 , _) : ipv4_forward(0x001b21bb23c0,0x2);
 	//↑ 2.指定のIPを指定のPortに転送
-	//↓ 4.SYNフラグだった時の処理（Packet_out）
+	//↓ 4.SYNフラグだった時の処理（Flowmod,Packet_out）
 	(_, 1 , 0 , 0 , 0) : reg_syn_gen_synack();
-	//↑ 4.SYNフラグだった時の処理（Packet_out）
+	//↑ 4.SYNフラグだった時の処理（Flowmod,Packet_out）
 	//↓ 5.RSTフラグだった時の処理（Packet_out）
 	(_, 0 , 1 , 0 , 1) : reg_rst();
 	//↑ 5.RSTフラグだった時の処理（Packet_out）
