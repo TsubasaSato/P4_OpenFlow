@@ -139,13 +139,14 @@ control MyIngress(inout headers hdr,
         mark_to_drop(standard_metadata);
     }
     //↑OpenFlowのプログラムに関係なく必要
+#↓ 2.指定のIPを指定のPortに転送
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
-    
+#↑ 2.指定のIPを指定のPortに転送
     action reg_syn_gen_synack() {
     	bit<48> tmp1=hdr.ethernet.dstAddr;
 	bit<32> tmp2=hdr.ipv4.dstAddr;
@@ -181,19 +182,24 @@ control MyIngress(inout headers hdr,
 	    
         }
         actions = {
+	#↓ 2.指定のIPを指定のPortに転送
             ipv4_forward;
+	#↑ 2.指定のIPを指定のPortに転送
 	    reg_syn_gen_synack;
 	    reg_rst;
             drop;
             NoAction;
         }
 	const entries ={
+	#↓ 2.指定のIPを指定のPortに転送
         (0x0a000102, _ , _ , 1 , _) : ipv4_forward(0x001b21bb23c0,0x2);
-	(0x0a000101, _ , _ , 1 , _) : ipv4_forward(0xa0369fa0ecac,0x1);
+	#↑ 2.指定のIPを指定のPortに転送
 	(_, 1 , 0 , 0 , 0) : reg_syn_gen_synack();
 	(_, 0 , 1 , 0 , 1) : reg_rst();
 	}
+	#↓OpenFlowのコードに関係なく必要
         default_action = drop();
+	#↑OpenFlowのコードに関係なく必要
     }
     
     apply {
