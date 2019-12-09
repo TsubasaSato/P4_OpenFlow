@@ -2,6 +2,7 @@
 #include <core.p4>
 #include <v1model.p4>
 
+// ether_typeやproto_typeはOpenFlowで要求されていなくても用意
 const bit<16> TYPE_IPV4 = 0x800;
 const bit<8>  TYPE_TCP  = 0x06;
 
@@ -9,6 +10,7 @@ const bit<8>  TYPE_TCP  = 0x06;
 *********************** H E A D E R S  ***********************************
 *************************************************************************/
 
+// ↓ヘッダはOpenFlowで要求されていないプロトコルでも用意
 typedef bit<9>  egressSpec_t;
 typedef bit<48> macAddr_t;
 typedef bit<32> ip4Addr_t;
@@ -53,22 +55,25 @@ header tcp_t {
     bit<16> urgentPtr;
 }
 
+struct headers {
+    ethernet_t   ethernet;
+    ipv4_t       ipv4;
+    tcp_t        tcp;
+}
+//↑ヘッダはOpenFlowで要求されていないプロトコルでも用意
+
+//
 struct metadata {
     bit<32> index;
     bit<1>  syn_ok;
     bit<1>  rst_ok;
 }
 
-struct headers {
-    ethernet_t   ethernet;
-    ipv4_t       ipv4;
-    tcp_t        tcp;
-}
-
 /*************************************************************************
 *********************** P A R S E R  ***********************************
 *************************************************************************/
 
+// ↓OpenFlowのプログラムに関係なく必要
 parser MyParser(packet_in packet,
                 out headers hdr,
                 inout metadata meta,
@@ -77,54 +82,63 @@ parser MyParser(packet_in packet,
     state start {
         transition parse_ethernet;
     }
-
     state parse_ethernet {
         packet.extract(hdr.ethernet);
         transition select(hdr.ethernet.etherType) {
+	    //↓1.eth_type=0800なら必要
             TYPE_IPV4: parse_ipv4;
-            default: accept;
+            //↑1.eth_type=0800なら必要
+	    default: accept;
         }
     }
-
+// ↑OpenFlowのプログラムに関係なく必要
+//↓1.eth_type=0800なら必要
     state parse_ipv4 {
         packet.extract(hdr.ipv4);
         transition select(hdr.ipv4.protocol) {
+	    //↓1.ip_proto=6なら必要
             TYPE_TCP: parse_tcp;
+	    //↑1.ip_proto=6なら必要
             default: accept;
         }
     }
-    
+//↑1.eth_type=0800なら必要
+//↓1.ip_proto=6なら必要
     state parse_tcp {
         packet.extract(hdr.tcp);
         transition accept;
     }
 }
-
+//↑1.ip_proto=6なら必要
 /*************************************************************************
 ************   C H E C K S U M    V E R I F I C A T I O N   *************
 *************************************************************************/
 
+/**
+ここのチェックは無くても良いのでは？
+applyしてないし
 control MyVerifyChecksum(inout headers hdr, inout metadata meta) {   
     apply {  }
 }
-
+**/
 
 /*************************************************************************
 **************  I N G R E S S   P R O C E S S I N G   *******************
 *************************************************************************/
-
+//↓OpenFlowのプログラムに関係なく必要
 control MyIngress(inout headers hdr,
                   inout metadata meta,
                   inout standard_metadata_t standard_metadata) {
-    
+//↑OpenFlowのプログラムに関係なく必要
     // Save state in these register.
     register<bit<1>>(65536) checking_hosts_syn;
     register<bit<1>>(65536) checked_hosts_rst;
     
+    //↓OpenFlowのプログラムに関係なく必要
     action drop() {
         mark_to_drop(standard_metadata);
     }
-    
+    //↑OpenFlowのプログラムに関係なく必要
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
@@ -184,6 +198,7 @@ control MyIngress(inout headers hdr,
     
     apply {
         if (hdr.ipv4.isValid()) {
+//↓1.TCPかどうかの処理部分
             if (hdr.tcp.isValid()) {
 		hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 						hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
@@ -193,6 +208,7 @@ control MyIngress(inout headers hdr,
 		auth.apply();
 		exit;
             }
+//↑1.TCPかどうかの処理部分
 	    // Forwarding Process
         }
     }
