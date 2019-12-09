@@ -69,7 +69,7 @@ class TCPSYN13(app_manager.RyuApp):
         inst = [parser.OFPInstructionGotoTable(1)]
         datapath.send_msg(self.create_flow_mod(datapath,2,0,match_t1,inst))
 # ↑1.TCPかどうかを判定するエントリ
-        
+# ↓3.状態を保存するためのテーブル群(P4では該当箇所無し)
         match = parser.OFPMatch()
         inst = [parser.OFPInstructionGotoTable(4)]
         datapath.send_msg(self.create_flow_mod(datapath,1,0,match,inst))
@@ -81,13 +81,14 @@ class TCPSYN13(app_manager.RyuApp):
         #TableID:2 CHECKING_TCP
         inst = [parser.OFPInstructionGotoTable(3)]
         datapath.send_msg(self.create_flow_mod(datapath,1,2,match,inst)) 
-       
+# ↑3.状態を保存するためのテーブル群(P4では該当箇所無し)
+# ↓4.パケットをコントローラへ送信する（コントローラでSYNパケットかどうかを調べるため、P4では該当箇所無し）
         #TableID:3 UNCHECK_TCP
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         datapath.send_msg(self.create_flow_mod(datapath,1,3,match,inst)) 
-     
-        #TableID:4 FORWARDING 2 => 1
+# ↑4.パケットをコントローラへ送信する（コントローラでSYNパケットかどうかを調べるため、P4では該当箇所無し）
 #↓ 2.指定のIPを指定のPortに転送
+        #TableID:4 FORWARDING 2 => 1
         match_t2 = parser.OFPMatch(eth_type=0x0800, 
                                      ip_proto=6,ipv4_dst=0x0a000102)
         actions = [parser.OFPActionOutput(port=1)]
@@ -121,9 +122,11 @@ class TCPSYN13(app_manager.RyuApp):
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
         if not pkt_ethernet:
             return
+        # ↓1.TCPかどうか
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         if pkt_tcp:
+        # ↓4.SYNフラグを持つかどうか
             if pkt_tcp.has_flags(tcp.TCP_SYN):
                 #Swap Mac,IP,Port for PacketOut
                 pkt_in = packet.Packet()
@@ -142,7 +145,8 @@ class TCPSYN13(app_manager.RyuApp):
                                         ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
                                         tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
                 datapath.send_msg(self.create_flow_mod(datapath,10,2,match,inst))
-        
+        # ↑4.SYNフラグを持つかどうか
+        # ↓5.RSTフラグを持つかどうか
             elif pkt_tcp.has_flags(tcp.TCP_RST):
                 #Flow mod , Fowarding action Port:2 => Port:1
                 actions = [parser.OFPActionOutput(port=1)]
@@ -152,5 +156,7 @@ class TCPSYN13(app_manager.RyuApp):
                                         ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
                                         tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
                 datapath.send_msg(self.create_flow_mod(datapath,10,1,match,inst))
+        # ↑5.RSTフラグを持つかどうか
         else:
             return
+        # ↑1.TCPかどうか
