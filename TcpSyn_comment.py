@@ -63,10 +63,13 @@ class TCPSYN13(app_manager.RyuApp):
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
         #TableID:0 INGRESS_FILTERING
+# ↓1.TCPかどうかを判別するエントリ
         match_t1 = parser.OFPMatch(eth_type=0x0800, 
                                      ip_proto=6)
         inst = [parser.OFPInstructionGotoTable(1)]
         datapath.send_msg(self.create_flow_mod(datapath,2,0,match_t1,inst))
+# ↑1.TCPかどうかを判定するエントリ
+        
         match = parser.OFPMatch()
         inst = [parser.OFPInstructionGotoTable(4)]
         datapath.send_msg(self.create_flow_mod(datapath,1,0,match,inst))
