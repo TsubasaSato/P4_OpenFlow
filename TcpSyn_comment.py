@@ -87,10 +87,13 @@ class TCPSYN13(app_manager.RyuApp):
         datapath.send_msg(self.create_flow_mod(datapath,1,3,match,inst)) 
      
         #TableID:4 FORWARDING 2 => 1
+#↓ 2.指定のIPを指定のPortに転送
+        match_t2 = parser.OFPMatch(eth_type=0x0800, 
+                                     ip_proto=6,ipv4_dst=0x0a000102)
         actions = [parser.OFPActionOutput(port=1)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        datapath.send_msg(self.create_flow_mod(datapath,1,4,match,inst)) 
-
+        datapath.send_msg(self.create_flow_mod(datapath,1,4,match_t2,inst)) 
+#↑ 2.指定のIPを指定のPortに転送
     def _send_packet(self, datapath, port, pkt):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
