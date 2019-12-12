@@ -166,36 +166,6 @@ control MyIngress(inout headers hdr,
 	//↑OpenFlowのコードに関係なく必要
     }
     
-    //↓ 4.SYNフラグだった時の処理（FlowMod,Packet_out）
-    action reg_syn_gen_synack() {
-    	bit<48> tmp1=hdr.ethernet.dstAddr;
-	bit<32> tmp2=hdr.ipv4.dstAddr;
-	bit<16> tmp3=hdr.tcp.dstPort;
-   
-    	checking_hosts_syn.write(meta.index,1w1);
-	
-	// Swap src_mac,ip,port and dst_mac,ip,port
-	// Change acknumber
-	standard_metadata.egress_spec = standard_metadata.ingress_port;
-	hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
-	hdr.ipv4.dstAddr = hdr.ipv4.srcAddr;
-	hdr.tcp.dstPort = hdr.tcp.srcPort;
-	hdr.ethernet.dstAddr = tmp1;
-	hdr.ipv4.dstAddr = tmp2;
-	hdr.tcp.dstPort = tmp3;
-	// Set acknumber to incorrect number
-	hdr.tcp.ackNo = 32w0x0;
-	hdr.tcp.syn = 1;
-	hdr.tcp.ack = 1;
-	hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
-    }
-    //↑ 4.SYNフラグだった時の処理（FlowMod,Packet_out）
-    //↓ 5.RSTフラグだった時の処理（FlowMod）
-    action reg_rst() {
-    	checked_hosts_rst.write(meta.index,1);
-    }
-    //↑ 5.RSTフラグだった時の処理（FlowMod)
-    
     apply {
         if (hdr.ipv4.isValid()) {
             //↓1.TCPかどうかの処理部分
@@ -210,7 +180,26 @@ control MyIngress(inout headers hdr,
                     	ipv4_lpm.apply();
                         exit;
                     } else {
-		    	reg_syn_gen_synack();
+		    	bit<48> tmp1=hdr.ethernet.dstAddr;
+			bit<32> tmp2=hdr.ipv4.dstAddr;
+			bit<16> tmp3=hdr.tcp.dstPort;
+   
+ 		   	checking_hosts_syn.write(meta.index,1w1);
+	
+			// Swap src_mac,ip,port and dst_mac,ip,port
+			// Change acknumber
+			standard_metadata.egress_spec = standard_metadata.ingress_port;
+			hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
+			hdr.ipv4.dstAddr = hdr.ipv4.srcAddr;
+			hdr.tcp.dstPort = hdr.tcp.srcPort;
+			hdr.ethernet.dstAddr = tmp1;
+			hdr.ipv4.dstAddr = tmp2;
+			hdr.tcp.dstPort = tmp3;
+			// Set acknumber to incorrect number
+			hdr.tcp.ackNo = 32w0x0;
+			hdr.tcp.syn = 1;
+			hdr.tcp.ack = 1;
+			hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
 			exit;
 		    }
 		} else if(hdr.tcp.rst==1){
@@ -219,7 +208,7 @@ control MyIngress(inout headers hdr,
                     //checking_hosts_synレジスタに登録したことがあるか
 		    checking_hosts_syn.read(meta.syn_ok,meta.index);
                     if (meta.syn_ok==1){
-                        reg_rst();
+                        checked_hosts_rst.write(meta.index,1);
                         exit;
                     }
                 }
