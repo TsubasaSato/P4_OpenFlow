@@ -49,7 +49,7 @@ header tcp_t {
     bit<1>  psh;
     bit<1>  rst;
     bit<1>  syn;
-    bit<1>  fin
+    bit<1>  fin;
     bit<16> window;
     bit<16> checksum;
     bit<16> urgentPtr;
