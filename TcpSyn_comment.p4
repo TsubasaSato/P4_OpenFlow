@@ -149,21 +149,16 @@ control MyIngress(inout headers hdr,
         key = {
 	    hdr.ipv4.dstAddr: lpm;
         }
-	//↓ 2.指定のIPを指定のPortに転送
         actions = {
             ipv4_forward;
             drop;
             NoAction;
         }
-	//↑ 2.指定のIPを指定のPortに転送
-	//↓ 2.指定のIPを指定のPortに転送
 	const entries ={
         (0x0a000102) : ipv4_forward(0x001b21bb23c0,0x2);
+	(0x0a000101) : ipv4_forward(0xa0369fa0ecac,0x1);
 	}
-	//↑ 2.指定のIPを指定のPortに転送
-	//↓OpenFlowのコードに関係なく必要
         default_action = drop();
-	//↑OpenFlowのコードに関係なく必要
     }
     
     apply {
