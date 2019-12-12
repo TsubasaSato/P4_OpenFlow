@@ -68,6 +68,14 @@ struct metadata {
     bit<1>  syn_ok;
     bit<1>  rst_ok;
 }
+/*************************************************************************
+************   C H E C K S U M    V E R I F I C A T I O N   *************
+*************************************************************************/
+
+control MyVerifyChecksum(inout headers hdr, inout metadata meta) {   
+    apply {  }
+}
+
 
 /*************************************************************************
 *********************** P A R S E R  ***********************************
@@ -294,6 +302,7 @@ control MyDeparser(packet_out packet, in headers hdr) {
 //↓OpenFlowのコードに関係なく必要
 V1Switch(
 MyParser(),
+MyVerifyChecksum(),
 MyIngress(),
 MyEgress(),
 MyComputeChecksum(),
