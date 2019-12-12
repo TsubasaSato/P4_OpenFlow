@@ -220,15 +220,29 @@ control MyIngress(inout headers hdr,
     
     apply {
         if (hdr.ipv4.isValid()) {
-//↓1.TCPかどうかの処理部分
+            //↓1.TCPかどうかの処理部分
             if (hdr.tcp.isValid()) {
-	        // ↓3.テーブルに存在するかどうか(FlowModで登録されるエントリ群)
-		hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
+	            // ↓3.テーブルに存在するかどうか(FlowModで登録されるエントリ群)
+		        if (hdr.tcp.syn==1){
+		            hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 						hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-		//checked_hosts_rstレジスタに登録したことがあるか
-		checked_hosts_rst.read(meta.rst_ok,meta.index);
-		//checking_hosts_synレジスタに登録したことがあるか
-		checking_hosts_syn.read(meta.syn_ok,meta.index);
+			        //checking_hosts_synレジスタに登録したことがあるか
+			        checking_hosts_syn.read(meta.syn_ok,meta.index);
+			        if (meta.syn_ok==1){
+				        reg_syn_gen_synack();
+				        exit;
+			} else if(hdr.tcp.rst==1){
+                hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
+			dr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
+                //checked_hosts_rstレジスタに登録したことがあるか
+		        checked_hosts_rst.read(meta.rst_ok,meta.index);
+                if (meta.rst_ok==1){
+                    reg_rst();
+                    exit;
+                }
+                }
+            }
+        
 		auth.apply();
 		exit;
 		// ↑3.テーブルに存在するかどうか(FlowModで登録されるエントリ群)
