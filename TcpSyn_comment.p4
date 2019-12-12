@@ -179,26 +179,11 @@ control MyIngress(inout headers hdr,
     table auth {
         key = {
 	    hdr.ipv4.dstAddr: lpm;
-	    //↓ 4.SYNフラグを持つかどうか
-            hdr.tcp.syn : ternary;
-	    //↑ 4.SYNフラグを持つかどうか
-	    //↓ 5.RSTフラグを持つかどうか
-	    hdr.tcp.rst : ternary;
-	    //↑ 5.RSTフラグを持つかどうか
-	    meta.rst_ok : exact;
-	    meta.syn_ok : ternary;
-	    
         }
         actions = {
 	//↓ 2.指定のIPを指定のPortに転送
             ipv4_forward;
 	//↑ 2.指定のIPを指定のPortに転送
-	//↓ 4.SYNフラグだった時の処理（Flowmod,Packet_out）
-	    reg_syn_gen_synack;
-	//↑ 4.SYNフラグだった時の処理（Flowmod,Packet_out）
-	//↓ 5.RSTフラグだった時の処理（Packet_out）
-	    reg_rst;
-	//↑ 5.RSTフラグだった時の処理（Packet_out）
             drop;
             NoAction;
         }
@@ -206,12 +191,6 @@ control MyIngress(inout headers hdr,
 	//↓ 2.指定のIPを指定のPortに転送
         (0x0a000102, _ , _ , 1 , _) : ipv4_forward(0x001b21bb23c0,0x2);
 	//↑ 2.指定のIPを指定のPortに転送
-	//↓ 4.SYNフラグだった時の処理（Flowmod,Packet_out）
-	(_, 1 , 0 , 0 , 0) : reg_syn_gen_synack();
-	//↑ 4.SYNフラグだった時の処理（Flowmod,Packet_out）
-	//↓ 5.RSTフラグだった時の処理（Packet_out）
-	(_, 0 , 1 , 0 , 1) : reg_rst();
-	//↑ 5.RSTフラグだった時の処理（Packet_out）
 	}
 	//↓OpenFlowのコードに関係なく必要
         default_action = drop();
@@ -222,24 +201,25 @@ control MyIngress(inout headers hdr,
         if (hdr.ipv4.isValid()) {
             //↓1.TCPかどうかの処理部分
             if (hdr.tcp.isValid()) {
-	            // ↓3.テーブルに存在するかどうか(FlowModで登録されるエントリ群)
-		        if (hdr.tcp.syn==1){
-		            hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
+	        // ↓3.テーブルに存在するかどうか(FlowModで登録されるエントリ群)
+		if (hdr.tcp.syn==1){
+		    hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 						hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-			        //checking_hosts_synレジスタに登録したことがあるか
-			        checking_hosts_syn.read(meta.syn_ok,meta.index);
-			        if (meta.syn_ok==1){
-				        reg_syn_gen_synack();
-				        exit;
-			} else if(hdr.tcp.rst==1){
-                hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
-			dr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-                //checked_hosts_rstレジスタに登録したことがあるか
-		        checked_hosts_rst.read(meta.rst_ok,meta.index);
-                if (meta.rst_ok==1){
-                    reg_rst();
-                    exit;
-                }
+		    //checking_hosts_synレジスタに登録したことがあるか
+		    checking_hosts_syn.read(meta.syn_ok,meta.index);
+		    if (meta.syn_ok==1){
+		        reg_syn_gen_synack();
+			exit;
+                    }
+		} else if(hdr.tcp.rst==1){
+                    hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
+	            dr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
+                    //checked_hosts_rstレジスタに登録したことがあるか
+		    checked_hosts_rst.read(meta.rst_ok,meta.index);
+                        if (meta.rst_ok==1){
+                            reg_rst();
+                            exit;
+                        }
                 }
             }
         
