@@ -173,22 +173,22 @@ control MyIngress(inout headers hdr,
     	checked_hosts_rst.write(meta.index,1);
     }
     //↑ 5.RSTフラグだった時の処理（FlowMod)
-    table ipv4_forwarding {
+    table ipv4_lpm {
         key = {
 	    hdr.ipv4.dstAddr: lpm;
         }
-        actions = {
 	//↓ 2.指定のIPを指定のPortに転送
+        actions = {
             ipv4_forward;
-	//↑ 2.指定のIPを指定のPortに転送
             drop;
             NoAction;
         }
-	const entries ={
-	//↓ 2.指定のIPを指定のPortに転送
-        (0x0a000102) : ipv4_forward(0x001b21bb23c0,0x2);
 	//↑ 2.指定のIPを指定のPortに転送
+	//↓ 2.指定のIPを指定のPortに転送
+	const entries ={
+        (0x0a000102) : ipv4_forward(0x001b21bb23c0,0x2);
 	}
+	//↑ 2.指定のIPを指定のPortに転送
 	//↓OpenFlowのコードに関係なく必要
         default_action = drop();
 	//↑OpenFlowのコードに関係なく必要
@@ -205,7 +205,7 @@ control MyIngress(inout headers hdr,
 		    //checked_hosts_rstレジスタに登録したことがあるか
 		    checked_hosts_rst.read(meta.rst_ok,meta.index);
                     if (meta.rst_ok==1){
-                    	ipv4_forwarding.apply();
+                    	ipv4_lpm.apply();
                         exit;
                     } else {
 		    	reg_syn_gen_synack();
@@ -222,7 +222,7 @@ control MyIngress(inout headers hdr,
                     }
                 }
             }
-	    ipv4_forwarding.apply();
+	    ipv4_lpm.apply();
         }
     }
 }
