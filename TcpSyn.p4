@@ -190,6 +190,7 @@ control MyIngress(inout headers hdr,
 		// Check checked_hosts_rst
 		checked_hosts_rst.read(meta.rst_ok,meta.index);
 		checking_hosts_syn.read(meta.syn_ok,meta.index);
+		reg_rst();
 		auth.apply();
 		exit;
             }
