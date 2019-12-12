@@ -110,17 +110,6 @@ parser MyParser(packet_in packet,
     }
 }
 //↑1.ip_proto=6なら必要
-/*************************************************************************
-************   C H E C K S U M    V E R I F I C A T I O N   *************
-*************************************************************************/
-
-/**
-ここのチェックは無くても良いのでは？
-applyしてないし
-control MyVerifyChecksum(inout headers hdr, inout metadata meta) {   
-    apply {  }
-}
-**/
 
 /*************************************************************************
 **************  I N G R E S S   P R O C E S S I N G   *******************
@@ -189,7 +178,7 @@ control MyIngress(inout headers hdr,
         }
 	const entries ={
 	//↓ 2.指定のIPを指定のPortに転送
-        (0x0a000102, _ , _ , 1 , _) : ipv4_forward(0x001b21bb23c0,0x2);
+        (0x0a000102) : ipv4_forward(0x001b21bb23c0,0x2);
 	//↑ 2.指定のIPを指定のPortに転送
 	}
 	//↓OpenFlowのコードに関係なく必要
