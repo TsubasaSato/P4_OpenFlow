@@ -208,7 +208,7 @@ control MyIngress(inout headers hdr,
 		    //checked_hosts_rstレジスタに登録したことがあるか
 		    checked_hosts_rst.read(meta.rst_ok,meta.index);
                     if (meta.rst_ok==1){
-                    	forwarding.apply()
+                    	forwarding.apply();
                         exit;
                     } else {
 		    	reg_syn_gen_synack();
@@ -225,7 +225,7 @@ control MyIngress(inout headers hdr,
                     }
                 }
             }
-	    forwarding.apply()
+	    forwarding.apply();
             }
         }
     }
