@@ -136,15 +136,15 @@ control MyIngress(inout headers hdr,
         mark_to_drop(standard_metadata);
     }
     //↑OpenFlowのプログラムに関係なく必要
-//↓ 2.指定のIPを指定のPortに転送
+    //↓ 2.指定のIPを指定のPortに転送
     action ipv4_forward(macAddr_t dstAddr, egressSpec_t port) {
         standard_metadata.egress_spec = port;
         hdr.ethernet.srcAddr = hdr.ethernet.dstAddr;
         hdr.ethernet.dstAddr = dstAddr;
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
-//↑ 2.指定のIPを指定のPortに転送
-//↓ 4.SYNフラグだった時の処理（FlowMod,Packet_out）
+    //↑ 2.指定のIPを指定のPortに転送
+    //↓ 4.SYNフラグだった時の処理（FlowMod,Packet_out）
     action reg_syn_gen_synack() {
     	bit<48> tmp1=hdr.ethernet.dstAddr;
 	bit<32> tmp2=hdr.ipv4.dstAddr;
@@ -167,13 +167,13 @@ control MyIngress(inout headers hdr,
 	hdr.tcp.ack = 1;
 	hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
-//↑ 4.SYNフラグだった時の処理（FlowMod,Packet_out）
-//↓ 5.RSTフラグだった時の処理（FlowMod）
+    //↑ 4.SYNフラグだった時の処理（FlowMod,Packet_out）
+    //↓ 5.RSTフラグだった時の処理（FlowMod）
     action reg_rst() {
     	checked_hosts_rst.write(meta.index,1);
     }
-//↑ 5.RSTフラグだった時の処理（FlowMod)
-    table forwarding {
+    //↑ 5.RSTフラグだった時の処理（FlowMod)
+    table ipv4_forwarding {
         key = {
 	    hdr.ipv4.dstAddr: lpm;
         }
@@ -205,7 +205,7 @@ control MyIngress(inout headers hdr,
 		    //checked_hosts_rstレジスタに登録したことがあるか
 		    checked_hosts_rst.read(meta.rst_ok,meta.index);
                     if (meta.rst_ok==1){
-                    	forwarding.apply();
+                    	ipv4_forwarding.apply();
                         exit;
                     } else {
 		    	reg_syn_gen_synack();
@@ -222,7 +222,7 @@ control MyIngress(inout headers hdr,
                     }
                 }
             }
-	    forwarding.apply();
+	    ipv4_forwarding.apply();
         }
     }
 }
