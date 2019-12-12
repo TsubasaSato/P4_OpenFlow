@@ -305,7 +305,6 @@ control MyDeparser(packet_out packet, in headers hdr) {
 //↓OpenFlowのコードに関係なく必要
 V1Switch(
 MyParser(),
-MyVerifyChecksum(),
 MyIngress(),
 MyEgress(),
 MyComputeChecksum(),
