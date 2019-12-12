@@ -144,7 +144,31 @@ control MyIngress(inout headers hdr,
         hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
     }
     //↑ 2.指定のIPを指定のPortに転送
-    
+    action reg_syn_gen_synack() {
+    	bit<48> tmp1=hdr.ethernet.dstAddr;
+	bit<32> tmp2=hdr.ipv4.dstAddr;
+	bit<16> tmp3=hdr.tcp.dstPort;
+   
+    	checking_hosts_syn.write(meta.index,1w1);
+	
+	// Swap src_mac,ip,port and dst_mac,ip,port
+	// Change acknumber
+	standard_metadata.egress_spec = standard_metadata.ingress_port;
+	hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
+	hdr.ipv4.dstAddr = hdr.ipv4.srcAddr;
+	hdr.tcp.dstPort = hdr.tcp.srcPort;
+	hdr.ethernet.dstAddr = tmp1;
+	hdr.ipv4.dstAddr = tmp2;
+	hdr.tcp.dstPort = tmp3;
+	// Set acknumber to incorrect number
+	hdr.tcp.ackNo = 32w0x0;
+	hdr.tcp.syn = 1;
+	hdr.tcp.ack = 1;
+	hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+    }
+    action reg_rst() {
+    	checked_hosts_rst.write(meta.index,1);
+    }
     table ipv4_lpm {
         key = {
 	    hdr.ipv4.dstAddr: lpm;
@@ -172,29 +196,11 @@ control MyIngress(inout headers hdr,
 		    //checked_hosts_rstレジスタに登録したことがあるか
 		    checked_hosts_rst.read(meta.rst_ok,meta.index);
                     if (meta.rst_ok==1){
+		    	//Accepted Host
                     	ipv4_lpm.apply();
                         exit;
                     } else {
-		    	bit<48> tmp1=hdr.ethernet.dstAddr;
-			bit<32> tmp2=hdr.ipv4.dstAddr;
-			bit<16> tmp3=hdr.tcp.dstPort;
-   
- 		   	checking_hosts_syn.write(meta.index,1w1);
-	
-			// Swap src_mac,ip,port and dst_mac,ip,port
-			// Change acknumber
-			standard_metadata.egress_spec = standard_metadata.ingress_port;
-			hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
-			hdr.ipv4.dstAddr = hdr.ipv4.srcAddr;
-			hdr.tcp.dstPort = hdr.tcp.srcPort;
-			hdr.ethernet.dstAddr = tmp1;
-			hdr.ipv4.dstAddr = tmp2;
-			hdr.tcp.dstPort = tmp3;
-			// Set acknumber to incorrect number
-			hdr.tcp.ackNo = 32w0x0;
-			hdr.tcp.syn = 1;
-			hdr.tcp.ack = 1;
-			hdr.ipv4.ttl = hdr.ipv4.ttl - 1;
+		    	reg_syn_gen_synack();
 			exit;
 		    }
 		} else if(hdr.tcp.rst==1){
@@ -203,12 +209,11 @@ control MyIngress(inout headers hdr,
                     //checking_hosts_synレジスタに登録したことがあるか
 		    checking_hosts_syn.read(meta.syn_ok,meta.index);
                     if (meta.syn_ok==1){
-                        checked_hosts_rst.write(meta.index,1);
+                        reg_rst();
                         exit;
                     }
                 }
             }
-	    ipv4_lpm.apply();
         }
     }
 }
