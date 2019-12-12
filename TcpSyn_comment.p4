@@ -226,10 +226,9 @@ control MyIngress(inout headers hdr,
                 }
             }
 	    forwarding.apply();
-            }
         }
     }
-}
+
 
 /*************************************************************************
 ****************  E G R E S S   P R O C E S S I N G   *******************
