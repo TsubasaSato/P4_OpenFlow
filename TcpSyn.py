@@ -43,16 +43,6 @@ class TCPSYN13(app_manager.RyuApp):
         flow_mod = datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=table_id, priority=priority,
                                 match=match, instructions=instructions)
         return flow_mod
-    def add_flow(self, datapath, priority, match, actions):
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-
-        mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
-                                match=match, instructions=inst)
-        datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
