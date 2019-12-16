@@ -186,29 +186,35 @@ control MyIngress(inout headers hdr,
     }
     
     apply {
+        // IPプロトコルかどうか
         if (hdr.ipv4.isValid()) {
-            //↓1.TCPかどうかの処理部分
+            // TCPプロトコルかどうか
             if (hdr.tcp.isValid()) {
-	        // ↓3.テーブルに存在するかどうか(FlowModで登録されるエントリ群)
+	        // TCPコントロールフラグのSYNフラグが立っているか
 		if (hdr.tcp.syn==1){
+		    // hash結果(0~65535)をindexに代入
 		    hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 			hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-		    //checked_hosts_rstレジスタに登録したことがあるか
+		    // 認証されたホストかどうか照合(checked_hosts_rst配列内で指定したindexを持つ要素が1なら認証されていて、0なら認証されていない)
 		    checked_hosts_rst.read(meta.rst_ok,meta.index);
                     if (meta.rst_ok==1){
-		    	//Accepted Host
+		    	// テーブル内のエントリに従ってパケットの転送
                     	ipv4_lpm.apply();
                         exit;
                     } else {
+		        // 認証中ホストとしてchecking_hosts_syn配列内で指定したindexを持つ要素に1を書く、不正なSYN/ACKパケットの生成
 		    	reg_syn_gen_synack();
 			exit;
 		    }
+		// TCPコントロールフラグのRSTフラグが立っているか
 		} else if(hdr.tcp.rst==1){
+		    // hash結果(0~65535)をindexに代入
                     hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 	            	hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-                    //checking_hosts_synレジスタに登録したことがあるか
+                    // 認証中のホストかどうか照合(checking_hosts_syn配列内で指定したindexを持つ要素が1なら認証中で、0なら認証中でない)
 		    checking_hosts_syn.read(meta.syn_ok,meta.index);
                     if (meta.syn_ok==1){
+		        // 認証済みホストとしてchecked_hosts_rst配列内で指定したindexを持つ要素に1を書く
                         reg_rst();
                         exit;
                     }
