@@ -186,9 +186,9 @@ control MyIngress(inout headers hdr,
     }
     
     apply {
-        // IPプロトコルかどうか
+        // IPプロトコルを持つかどうか
         if (hdr.ipv4.isValid()) {
-            // TCPプロトコルかどうか
+            // TCPプロトコルを持つかどうか
             if (hdr.tcp.isValid()) {
 	        // TCPコントロールフラグのSYNフラグが立っているか
 		if (hdr.tcp.syn==1){
