@@ -202,7 +202,8 @@ control MyIngress(inout headers hdr,
                     	ipv4_lpm.apply();
                         exit;
                     } else {
-		        // 認証中ホストとしてchecking_hosts_syn配列内で指定したindexを持つ要素に1を書く、不正なSYN/ACKパケットの生成
+		        // 認証中ホストとしてchecking_hosts_syn配列内で指定したindexを持つ要素に1を書く
+			// 不正なSYN/ACKパケットの生成
 		    	reg_syn_gen_synack();
 			exit;
 		    }
