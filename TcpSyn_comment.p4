@@ -195,7 +195,7 @@ control MyIngress(inout headers hdr,
 		    // パケットの送信元Eth,IP,Port,送信先Eth,IP,Portのhash結果(0~65535)をindexに代入
 		    hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 			hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-		    // 認証されたホストかどうか照合(checked_hosts_rst配列内で指定したindexを持つ要素が1なら認証されていて、0なら認証されていない)
+		    // 認証済みホストかどうか照合(checked_hosts_rst配列内で指定したindexを持つ要素が1なら認証済みで、0なら認証済みでない)
 		    checked_hosts_rst.read(meta.rst_ok,meta.index);
                     if (meta.rst_ok==1){
 		    	// テーブル内のエントリに従ってパケットの転送
