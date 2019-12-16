@@ -190,36 +190,34 @@ control MyIngress(inout headers hdr,
         if (hdr.ipv4.isValid()) {
             // TCPプロトコルを持つかどうか
             if (hdr.tcp.isValid()) {
-	        // TCPコントロールフラグのSYNフラグが立っているか
-		if (hdr.tcp.syn==1){
-		    // パケットの送信元Eth,IP,Port,送信先Eth,IP,Portのhash結果(0~65535)をindexに代入
-		    hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
+	        // パケットの送信元Eth,IP,Port,送信先Eth,IP,Portのhash結果(0~65535)をindexに代入
+	        hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 			hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-		    // 認証済みホストかどうか照合(checked_hosts_rst配列内で指定したindexを持つ要素が1なら認証済みで、0なら認証済みでない)
-		    checked_hosts_rst.read(meta.rst_ok,meta.index);
-                    if (meta.rst_ok==1){
-		    	// テーブル内のエントリに従ってパケットの転送
-                    	ipv4_lpm.apply();
-                        exit;
-                    } else {
-		        // 認証中ホストとしてchecking_hosts_syn配列内で指定したindexを持つ要素に1を書く
-			// 不正なSYN/ACKパケットの生成
-		    	reg_syn_gen_synack();
-			exit;
-		    }
-		// TCPコントロールフラグのRSTフラグが立っているか
-		} else if(hdr.tcp.rst==1){
-		    // パケットの送信元Eth,IP,Port,送信先Eth,IP,Portのhash結果(0~65535)をindexに代入
-                    hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
-	            	hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
-                    // 認証中のホストかどうか照合(checking_hosts_syn配列内で指定したindexを持つ要素が1なら認証中で、0なら認証中でない)
-		    checking_hosts_syn.read(meta.syn_ok,meta.index);
-                    if (meta.syn_ok==1){
+		// 認証済みホストかどうか照合(checked_hosts_rst配列内で指定したindexを持つ要素が1なら認証済みで、0なら認証済みでない)
+		checked_hosts_rst.read(meta.rst_ok,meta.index);
+                if (meta.rst_ok==1){
+		    // テーブル内のエントリに従ってパケットの転送
+                    ipv4_lpm.apply();
+                    exit;
+                }
+		
+		// 認証中のホストかどうか照合(checking_hosts_syn配列内で指定したindexを持つ要素が1なら認証中で、0なら認証中でない)
+		checking_hosts_syn.read(meta.syn_ok,meta.index);
+                if (meta.syn_ok==1){
+		    if(hdr.tcp.rst==1){
 		        // 認証済みホストとしてchecked_hosts_rst配列内で指定したindexを持つ要素に1を書く
                         reg_rst();
                         exit;
-                    }
+		    }
                 }
+		
+	        // TCPコントロールフラグのSYNフラグが立っているか
+		if (hdr.tcp.syn==1){
+		    // 認証中ホストとしてchecking_hosts_syn配列内で指定したindexを持つ要素に1を書く
+		    // 不正なSYN/ACKパケットの生成
+		    reg_syn_gen_synack();
+		    exit;
+		}
             }
         }
     }
