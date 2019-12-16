@@ -192,7 +192,7 @@ control MyIngress(inout headers hdr,
             if (hdr.tcp.isValid()) {
 	        // TCPコントロールフラグのSYNフラグが立っているか
 		if (hdr.tcp.syn==1){
-		    // hash結果(0~65535)をindexに代入
+		    // パケットの送信元Eth,IP,Port,送信先Eth,IP,Portのhash結果(0~65535)をindexに代入
 		    hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 			hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
 		    // 認証されたホストかどうか照合(checked_hosts_rst配列内で指定したindexを持つ要素が1なら認証されていて、0なら認証されていない)
@@ -208,7 +208,7 @@ control MyIngress(inout headers hdr,
 		    }
 		// TCPコントロールフラグのRSTフラグが立っているか
 		} else if(hdr.tcp.rst==1){
-		    // hash結果(0~65535)をindexに代入
+		    // パケットの送信元Eth,IP,Port,送信先Eth,IP,Portのhash結果(0~65535)をindexに代入
                     hash(meta.index,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr, hdr.ipv4.dstAddr, hdr.tcp.dstPort,
 	            	hdr.ethernet.srcAddr, hdr.ipv4.srcAddr, hdr.tcp.srcPort},32w65536);
                     // 認証中のホストかどうか照合(checking_hosts_syn配列内で指定したindexを持つ要素が1なら認証中で、0なら認証中でない)
