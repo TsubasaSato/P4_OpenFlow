@@ -90,10 +90,14 @@ class TCPSYN13(app_manager.RyuApp):
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
         if not pkt_ethernet:
             return
+        
         # IPプロトコルを持つかどうか
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
-        # TCPプロトコルを持つかどうか
+        if not pkt_ipv4 :
+            return
+        
         pkt_tcp = pkt.get_protocol(tcp.tcp)
+        # TCPプロトコルを持つかどうか
         if pkt_tcp:
             # TCPコントロールフラグのSYNフラグが立っているか
             if pkt_tcp.has_flags(tcp.TCP_SYN):
