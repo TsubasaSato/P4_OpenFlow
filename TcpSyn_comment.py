@@ -85,7 +85,7 @@ class TCPSYN13(app_manager.RyuApp):
         # パケットが入ってきたスイッチの物理ポート
         port = msg.match['in_port']
         pkt = packet.Packet(data=msg.data)
-        self.logger.info("packet-in %s" % (pkt,))
+
         # イーサネットを持つかどうか
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
         if not pkt_ethernet:
