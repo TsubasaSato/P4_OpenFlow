@@ -35,24 +35,6 @@ class TCPSYN13(app_manager.RyuApp):
     def __init__(self, *args, **kwargs):
         super(TCPSYN13, self).__init__(*args, **kwargs)
         self.mac_to_port = {}
-        
-    # Create OFP flow mod message.
-    def create_flow_mod(self, datapath, priority,
-                        table_id, match, instructions):
-        ofproto = datapath.ofproto
-        flow_mod = datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=table_id, priority=priority,
-                                match=match, instructions=instructions)
-        return flow_mod
-    def add_flow(self, datapath, priority, match, actions):
-        ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
-
-        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS,
-                                             actions)]
-
-        mod = parser.OFPFlowMod(datapath=datapath, priority=priority,
-                                match=match, instructions=inst)
-        datapath.send_msg(mod)
 
     @set_ev_cls(ofp_event.EventOFPSwitchFeatures, CONFIG_DISPATCHER)
     def switch_features_handler(self, ev):
@@ -63,38 +45,37 @@ class TCPSYN13(app_manager.RyuApp):
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
         #TableID:0 INGRESS_FILTERING
-# ↓1.TCPかどうかを判別するエントリ
         match_t1 = parser.OFPMatch(eth_type=0x0800, 
                                      ip_proto=6)
         inst = [parser.OFPInstructionGotoTable(1)]
-        datapath.send_msg(self.create_flow_mod(datapath,2,0,match_t1,inst))
-# ↑1.TCPかどうかを判定するエントリ
-# ↓3.状態を保存するためのテーブル群(P4では該当箇所無し)
+        datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2,
+                                match=match_t1, instructions=inst))
         match = parser.OFPMatch()
         inst = [parser.OFPInstructionGotoTable(4)]
-        datapath.send_msg(self.create_flow_mod(datapath,1,0,match,inst))
+        datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=0, priority=1,
+                                match=match, instructions=inst))
    
         #TableID:1 CHECKED_TCP
         inst = [parser.OFPInstructionGotoTable(2)]
-        datapath.send_msg(self.create_flow_mod(datapath,1,1,match,inst))
+        datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=1, priority=1,
+                                match=match, instructions=inst))
         
         #TableID:2 CHECKING_TCP
         inst = [parser.OFPInstructionGotoTable(3)]
-        datapath.send_msg(self.create_flow_mod(datapath,1,2,match,inst)) 
-# ↑3.状態を保存するためのテーブル群(P4では該当箇所無し)
-# ↓4.パケットをコントローラへ送信する（コントローラでSYNパケットかどうかを調べるため、P4では該当箇所無し）
+        datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=2, priority=1,
+                                match=match, instructions=inst))
+       
         #TableID:3 UNCHECK_TCP
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        datapath.send_msg(self.create_flow_mod(datapath,1,3,match,inst)) 
-# ↑4.パケットをコントローラへ送信する（コントローラでSYNパケットかどうかを調べるため、P4では該当箇所無し）
-#↓ 2.指定のIPを指定のPortに転送
+        datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=3, priority=1,
+                                match=match, instructions=inst))
+     
         #TableID:4 FORWARDING 2 => 1
-        match_t2 = parser.OFPMatch(eth_type=0x0800, 
-                                     ip_proto=6,ipv4_dst=0x0a000102)
         actions = [parser.OFPActionOutput(port=1)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-        datapath.send_msg(self.create_flow_mod(datapath,1,4,match_t2,inst)) 
-#↑ 2.指定のIPを指定のPortに転送
+        datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=4, priority=1,
+                                match=match, instructions=inst))
+
     def _send_packet(self, datapath, port, pkt):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
@@ -118,25 +99,34 @@ class TCPSYN13(app_manager.RyuApp):
         port = msg.match['in_port']
         pkt = packet.Packet(data=msg.data)
         self.logger.info("packet-in %s" % (pkt,))
-        # Parse packet
+        # イーサネットを持つかどうか
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
         if not pkt_ethernet:
             return
-        # ↓1.TCPかどうか
+        # IPプロトコルを持つかどうか
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
+        # TCPプロトコルを持つかどうか
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         if pkt_tcp:
-        # ↓4.SYNフラグを持つかどうか
+            # TCPコントロールフラグのSYNフラグが立っているか
             if pkt_tcp.has_flags(tcp.TCP_SYN):
-                #Swap Mac,IP,Port for PacketOut
+                # 不正なSYN/ACKパケットの生成
                 pkt_in = packet.Packet()
                 pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
                 pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
-                #Incorrect SYN/ACK
                 pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst_port,dst_port=pkt_tcp.src_port,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
+                # PacketOut
+                out = parser.OFPPacketOut(datapath=datapath,
+                                  buffer_id=ofproto.OFP_NO_BUFFER,
+                                  in_port=ofproto.OFPP_CONTROLLER,
+                                  actions=actions,
+                                  data=data)
+                datapath.send_msg(out)
                 self._send_packet(datapath,port,pkt_in)
-        
-                #Flow mod
+                
+                
+                # 認証中ホストとしてテーブルに記録
+                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして、OpenFlowスイッチのテーブルにエントリ追加)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
@@ -144,19 +134,20 @@ class TCPSYN13(app_manager.RyuApp):
                                         eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
                                         ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
                                         tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
-                datapath.send_msg(self.create_flow_mod(datapath,10,2,match,inst))
-        # ↑4.SYNフラグを持つかどうか
-        # ↓5.RSTフラグを持つかどうか
+                datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=2, priority=10,
+                                match=match, instructions=inst))
+
+            # TCPコントロールフラグのRSTフラグが立っているか
             elif pkt_tcp.has_flags(tcp.TCP_RST):
-                #Flow mod , Fowarding action Port:2 => Port:1
+                # 認証済みホストとしてテーブルに記録
+                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして、OpenFlowスイッチのテーブルにエントリ追加)
                 actions = [parser.OFPActionOutput(port=1)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
                 match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
                                         eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
                                         ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
                                         tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
-                datapath.send_msg(self.create_flow_mod(datapath,10,1,match,inst))
-        # ↑5.RSTフラグを持つかどうか
+                datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=1, priority=10,
+                                match=match, instructions=inst))
         else:
             return
-        # ↑1.TCPかどうか
