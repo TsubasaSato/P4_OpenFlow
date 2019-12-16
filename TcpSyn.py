@@ -111,23 +111,27 @@ class TCPSYN13(app_manager.RyuApp):
         port = msg.match['in_port']
         pkt = packet.Packet(data=msg.data)
         self.logger.info("packet-in %s" % (pkt,))
-        # Parse packet
+        # イーサかどうか
         pkt_ethernet = pkt.get_protocol(ethernet.ethernet)
         if not pkt_ethernet:
             return
+        # IPプロトコルを持つかどうか
         pkt_ipv4 = pkt.get_protocol(ipv4.ipv4)
+        # TCPプロトコルを持つかどうか
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         if pkt_tcp:
+            # TCPコントロールフラグのSYNフラグが立っているか
             if pkt_tcp.has_flags(tcp.TCP_SYN):
-                #Swap Mac,IP,Port for PacketOut
+                # 不正なSYN/ACKパケットの生成
                 pkt_in = packet.Packet()
                 pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
                 pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
-                #Incorrect SYN/ACK
                 pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst_port,dst_port=pkt_tcp.src_port,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
+                # PacketOut
                 self._send_packet(datapath,port,pkt_in)
-        
-                #Flow mod
+                
+                # 認証中ホストとしてテーブルに記録
+                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして、OpenFlowスイッチのテーブルにエントリ追加)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
@@ -136,9 +140,10 @@ class TCPSYN13(app_manager.RyuApp):
                                         ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
                                         tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
                 datapath.send_msg(self.create_flow_mod(datapath,10,2,match,inst))
-        
+            # TCPコントロールフラグのRSTフラグが立っているか
             elif pkt_tcp.has_flags(tcp.TCP_RST):
-                #Flow mod , Fowarding action Port:2 => Port:1
+                # 認証済みホストとしてテーブルに記録
+                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして、OpenFlowスイッチのテーブルにエントリ追加)
                 actions = [parser.OFPActionOutput(port=1)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
                 match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
