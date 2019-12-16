@@ -96,6 +96,7 @@ class TCPSYN13(app_manager.RyuApp):
         datapath = msg.datapath
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
+        # パケットが入ってきたスイッチの物理ポート
         port = msg.match['in_port']
         pkt = packet.Packet(data=msg.data)
         self.logger.info("packet-in %s" % (pkt,))
@@ -115,6 +116,9 @@ class TCPSYN13(app_manager.RyuApp):
                 pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
                 pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
                 pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst_port,dst_port=pkt_tcp.src_port,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
+                pkt_in.serialize()
+                data = pkt_in.data
+                actions = [parser.OFPActionOutput(port=port)]
                 # PacketOut
                 out = parser.OFPPacketOut(datapath=datapath,
                                   buffer_id=ofproto.OFP_NO_BUFFER,
@@ -122,9 +126,7 @@ class TCPSYN13(app_manager.RyuApp):
                                   actions=actions,
                                   data=data)
                 datapath.send_msg(out)
-                self._send_packet(datapath,port,pkt_in)
-                
-                
+              　
                 # 認証中ホストとしてテーブルに記録
                 # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして、OpenFlowスイッチのテーブルにエントリ追加)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
