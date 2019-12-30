@@ -119,6 +119,7 @@ class TCPSYN13(app_manager.RyuApp):
               　
                 # 認証中ホストとしてテーブルに記録
                 # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
+                # parser時,ここでエラー発生
                 actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
