@@ -117,6 +117,9 @@ class TCPSYN13(app_manager.RyuApp):
                                   data=data)
                 datapath.send_msg(out)
                 
+                              　
+                # 認証中ホストとしてテーブルに記録
+                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,ofproto.OFPCML_NO_BUFFER)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
                 match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
