@@ -118,7 +118,7 @@ class TCPSYN13(app_manager.RyuApp):
                 datapath.send_msg(out)
               　
                 # 認証中ホストとしてテーブルに記録
-                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして、OpenFlowスイッチのテーブルにエントリ追加)
+                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
                 actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
                                           ofproto.OFPCML_NO_BUFFER)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
@@ -132,7 +132,7 @@ class TCPSYN13(app_manager.RyuApp):
             # TCPコントロールフラグのRSTフラグが立っているか
             elif pkt_tcp.has_flags(tcp.TCP_RST):
                 # 認証済みホストとしてテーブルに記録
-                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして、OpenFlowスイッチのテーブルにエントリ追加)
+                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
                 actions = [parser.OFPActionOutput(port=1)]
                 inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
                 match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
