@@ -98,47 +98,47 @@ class TCPSYN13(app_manager.RyuApp):
         
         pkt_tcp = pkt.get_protocol(tcp.tcp)
         # TCPプロトコルを持つかどうか
-        if pkt_tcp:
-            # TCPコントロールフラグのSYNフラグが立っているか
-            if pkt_tcp.has_flags(tcp.TCP_SYN):
-                # 不正なSYN/ACKパケットの生成(パケットの生成)
-                pkt_in = packet.Packet()
-                pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
-                pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
-                pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst_port,dst_port=pkt_tcp.src_port,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
-                pkt_in.serialize()
-                data = pkt_in.data
-                actions = [parser.OFPActionOutput(port=port)]
-                # PacketOut
-                out = parser.OFPPacketOut(datapath=datapath,
-                                  buffer_id=ofproto.OFP_NO_BUFFER,
-                                  in_port=ofproto.OFPP_CONTROLLER,
-                                  actions=actions,
-                                  data=data)
-                datapath.send_msg(out)
-                
-                # 認証中ホストとしてテーブルに記録
-                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
-                actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,ofproto.OFPCML_NO_BUFFER)]
-                inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-                match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
+        if not pkt_tcp:
+            return
+        
+        # TCPコントロールフラグのSYNフラグが立っているか
+        if pkt_tcp.has_flags(tcp.TCP_SYN):
+            # 不正なSYN/ACKパケットの生成(パケットの生成)
+            pkt_in = packet.Packet()
+            pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
+            pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
+            pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst_port,dst_port=pkt_tcp.src_port,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
+            pkt_in.serialize()
+            data = pkt_in.data
+            actions = [parser.OFPActionOutput(port=port)]
+            # PacketOut
+            out = parser.OFPPacketOut(datapath=datapath,
+                              buffer_id=ofproto.OFP_NO_BUFFER,
+                              in_port=ofproto.OFPP_CONTROLLER,
+                              actions=actions,
+                              data=data)
+            datapath.send_msg(out)
+               
+            # 認証中ホストとしてテーブルに記録
+            # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
+            actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,ofproto.OFPCML_NO_BUFFER)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+            match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
                                         eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
                                         ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
                                         tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
-                datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=2, priority=10,
+            datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=2, priority=10,
                                 match=match, instructions=inst))
 
-            # TCPコントロールフラグのRSTフラグが立っているか
-            elif pkt_tcp.has_flags(tcp.TCP_RST):
-                # 認証済みホストとしてテーブルに記録
-                # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
-                actions = [parser.OFPActionOutput(port=1)]
-                inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-                match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
-                                        eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
-                                        ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
-                                        tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
-                datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=1, priority=10,
+        # TCPコントロールフラグのRSTフラグが立っているか
+        elif pkt_tcp.has_flags(tcp.TCP_RST):
+            # 認証済みホストとしてテーブルに記録
+            # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
+            actions = [parser.OFPActionOutput(port=1)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+            match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
+                                    eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
+                                    ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
+                                    tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
+            datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=1, priority=10,
                                 match=match, instructions=inst))
-        else:
-            return
