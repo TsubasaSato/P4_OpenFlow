@@ -69,13 +69,13 @@ class TCPSYN13(app_manager.RyuApp):
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=3, priority=1,
                                 match=match, instructions=inst))
-     
+        """
         #TableID:4 FORWARDING 2 => 1
         actions = [parser.OFPActionOutput(port=1)]
         inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=4, priority=1,
                                 match=match, instructions=inst))
-   
+        """
     @set_ev_cls(ofp_event.EventOFPPacketIn, MAIN_DISPATCHER)
     def _packet_in_handler(self, ev):
         msg = ev.msg
