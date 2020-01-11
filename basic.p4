@@ -116,7 +116,7 @@ control MyIngress(inout headers hdr,
     apply {
         // TableID:0
         // IPプロトコルとTCPプロトコルを持つかどうか
-        if (hdr.ipv4.isValid() && hdr.tcp.isValid()) {
+        if (!hdr.ipv4.isValid() && hdr.tcp.isValid()) {
 	    
 	    // TableID:1
             if (// TableId:1内で1番目に優先度が高いフローエントリのMatch){
