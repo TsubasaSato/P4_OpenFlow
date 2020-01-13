@@ -128,6 +128,9 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 //↑OpenFlowのプログラムに関係なく必要
     // Save state in these register.
+register<bit<1>>(65536) reg0;
+register<bit<1>>(65536) reg1;
+
 apply{
 if (hdr.ipv4.isValid() && hdr.tcp.isValid()) {
 bit<1> OK_1_1;
@@ -236,7 +239,6 @@ exit;
 
 }
 
-        
     
 }
 
