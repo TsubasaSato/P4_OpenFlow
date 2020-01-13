@@ -186,8 +186,8 @@ control MyIngress(inout headers hdr,
     }
     
     apply {
-        if (hdr.ipv4.isValid() && hdr.tcp.isValid()) {
-    bit<1> OK_1_1;
+if (hdr.ipv4.isValid() && hdr.tcp.isValid()) {
+bit<1> OK_1_1;
 bit<32> index_1_1;
 hash(index_1_1,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
 reg1.read(OK_1_1,index_1_1);
@@ -282,7 +282,8 @@ reg1.write(index_1_0,1w1);
 
 
 
-    }
+}
+
 
         
     }
