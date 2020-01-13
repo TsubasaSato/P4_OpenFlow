@@ -128,10 +128,10 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 //↑OpenFlowのプログラムに関係なく必要
     // Save state in these register.
-    register<bit<1>>(65536) reg0;
-    register<bit<1>>(65536) reg1;
-    
-    apply {
+register<bit<1>>(65536) reg0;
+register<bit<1>>(65536) reg1;
+
+apply{
 if (hdr.ipv4.isValid() && hdr.tcp.isValid()) {
 bit<1> OK_1_1;
 bit<32> index_1_1;
@@ -147,13 +147,13 @@ hash(index_0_1,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.src
 reg0.read(OK_0_1,index_0_1);
 if (OK_0_1==1){
     if (! hdr.ethernet.isValid()) {
-    exit;
+exit;
 }
 if (! hdr.ipv4.isValid()) {
-    exit;
+exit;
 }
 if (! hdr.tcp.isValid()) {
-    exit;
+exit;
 }
 if (hdr.tcp.syn==1) {
 standard_metadata.egress_spec = standard_metadata.ingress_port;
@@ -177,23 +177,25 @@ bit<1> OK_0_0;
 bit<32> index_0_0;
 hash(index_0_0,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
 reg0.write(index_0_0,1w1);
+exit;
 }
 else if (hdr.tcp.rst==1) {
 bit<1> OK_1_0;
 bit<32> index_1_0;
 hash(index_1_0,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
 reg1.write(index_1_0,1w1);
+exit;
 }
 
     }
 if (! hdr.ethernet.isValid()) {
-    exit;
+exit;
 }
 if (! hdr.ipv4.isValid()) {
-    exit;
+exit;
 }
 if (! hdr.tcp.isValid()) {
-    exit;
+exit;
 }
 if (hdr.tcp.syn==1) {
 standard_metadata.egress_spec = standard_metadata.ingress_port;
@@ -217,19 +219,23 @@ bit<1> OK_0_0;
 bit<32> index_0_0;
 hash(index_0_0,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
 reg0.write(index_0_0,1w1);
+exit;
 }
 else if (hdr.tcp.rst==1) {
 bit<1> OK_1_0;
 bit<32> index_1_0;
 hash(index_1_0,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
 reg1.write(index_1_0,1w1);
+exit;
 }
 
 
 
 
+exit;
 }
 
+}
 
         
     }
