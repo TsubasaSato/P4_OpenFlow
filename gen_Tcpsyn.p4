@@ -131,22 +131,6 @@ control MyIngress(inout headers hdr,
     register<bit<1>>(65536) reg0;
     register<bit<1>>(65536) reg1;
     
-    table ipv4_lpm {
-        key = {
-	    hdr.ipv4.dstAddr: lpm;
-        }
-        actions = {
-            ipv4_forward;
-            drop;
-            NoAction;
-        }
-	const entries ={
-        (0x0a000102) : ipv4_forward(0x001b21bb23c0,0x2);
-	(0x0a000101) : ipv4_forward(0xa0369fa0ecac,0x1);
-	}
-        default_action = drop();
-    }
-    
     apply {
 if (hdr.ipv4.isValid() && hdr.tcp.isValid()) {
 bit<1> OK_1_1;
