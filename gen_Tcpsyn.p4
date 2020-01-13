@@ -232,7 +232,7 @@ bit<32> index_0_0;
 hash(index_0_0,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
 reg0.write(index_0_0,1w1);
 }
-elif (hdr.tcp.rst==1) {
+else if (hdr.tcp.rst==1) {
 bit<1> OK_1_0;
 bit<32> index_1_0;
 hash(index_1_0,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
