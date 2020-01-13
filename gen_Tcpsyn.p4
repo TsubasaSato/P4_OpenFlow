@@ -128,9 +128,6 @@ control MyIngress(inout headers hdr,
                   inout standard_metadata_t standard_metadata) {
 //↑OpenFlowのプログラムに関係なく必要
     // Save state in these register.
-register<bit<1>>(65536) reg0;
-register<bit<1>>(65536) reg1;
-
 apply{
 if (hdr.ipv4.isValid() && hdr.tcp.isValid()) {
 bit<1> OK_1_1;
@@ -138,15 +135,16 @@ bit<32> index_1_1;
 hash(index_1_1,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
 reg1.read(OK_1_1,index_1_1);
 if (OK_1_1==1){
-    standard_metadata.egress_spec = 1;
+standard_metadata.egress_spec = 1;
 
-    }
+exit;
+}
 bit<1> OK_0_1;
 bit<32> index_0_1;
 hash(index_0_1,HashAlgorithm.crc16,32w0,{hdr.ethernet.dstAddr , hdr.ethernet.srcAddr , hdr.ipv4.dstAddr , hdr.ipv4.srcAddr , hdr.tcp.dstPort , hdr.tcp.srcPort},32w65536);
 reg0.read(OK_0_1,index_0_1);
 if (OK_0_1==1){
-    if (! hdr.ethernet.isValid()) {
+if (! hdr.ethernet.isValid()) {
 exit;
 }
 if (! hdr.ipv4.isValid()) {
@@ -187,7 +185,8 @@ reg1.write(index_1_0,1w1);
 exit;
 }
 
-    }
+exit;
+}
 if (! hdr.ethernet.isValid()) {
 exit;
 }
