@@ -50,8 +50,8 @@ class TCPSYN13(app_manager.RyuApp):
         inst = [parser.OFPInstructionGotoTable(1)]
         datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=0, priority=2,
                                 match=match_t1, instructions=inst))
-        """
         match = parser.OFPMatch()
+        """
         inst = [parser.OFPInstructionGotoTable(4)]
         datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=0, priority=1,
                                 match=match, instructions=inst))
