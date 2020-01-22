@@ -105,7 +105,7 @@ class TCPSYN13(app_manager.RyuApp):
         
         # TCPコントロールフラグのSYNフラグが立っているか
         if pkt_tcp.has_flags(tcp.TCP_SYN):
-            # 不正なSYN/ACKパケットの生成(パケットの生成)
+            # 不正なSYN/ACKパケットの生成処理
             pkt_in = packet.Packet()
             pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
             pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
