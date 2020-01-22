@@ -105,6 +105,17 @@ class TCPSYN13(app_manager.RyuApp):
         
         # TCPコントロールフラグのSYNフラグが立っているか
         if pkt_tcp.has_flags(tcp.TCP_SYN):
+            # 認証中ホストとしてテーブルに記録
+            # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
+            actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,ofproto.OFPCML_NO_BUFFER)]
+            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
+            match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
+                                        eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
+                                        ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
+                                        tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
+            datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=2, priority=10,
+                                match=match, instructions=inst))
+            
             # 不正なSYN/ACKパケットの生成処理
             pkt_in = packet.Packet()
             pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
@@ -120,17 +131,6 @@ class TCPSYN13(app_manager.RyuApp):
                               actions=actions,
                               data=data)
             datapath.send_msg(out)
-               
-            # 認証中ホストとしてテーブルに記録
-            # Flowmod(パケットの送信元Eth,IP,Port,送信先Eth,IP,PortをMatchとして,OpenFlowスイッチのテーブルにエントリ追加)
-            actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,ofproto.OFPCML_NO_BUFFER)]
-            inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
-            match = parser.OFPMatch(eth_type=0x0800, ip_proto=6,
-                                        eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
-                                        ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
-                                        tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
-            datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=2, priority=10,
-                                match=match, instructions=inst))
 
         # TCPコントロールフラグのRSTフラグが立っているか
         elif pkt_tcp.has_flags(tcp.TCP_RST):
