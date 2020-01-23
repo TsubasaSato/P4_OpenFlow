@@ -113,7 +113,7 @@ class TCPSYN13(app_manager.RyuApp):
                                         eth_dst=pkt_ethernet.dst,eth_src=pkt_ethernet.src,
                                         ipv4_dst=pkt_ipv4.dst,ipv4_src=pkt_ipv4.src,
                                         tcp_dst=pkt_tcp.dst_port,tcp_src=pkt_tcp.src_port)
-            datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=2,priority=10,
+            datapath.send_msg(datapath.ofproto_parser.OFPFlowMod(datapath=datapath, table_id=2,idle_time=3,priority=10,
                                 match=match, instructions=inst))
             
             # 不正なSYN/ACKパケットの生成処理
