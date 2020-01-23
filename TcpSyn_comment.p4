@@ -157,9 +157,9 @@ control MyIngress(inout headers hdr,
 	hdr.ethernet.dstAddr = hdr.ethernet.srcAddr;
 	hdr.ipv4.dstAddr = hdr.ipv4.srcAddr;
 	hdr.tcp.dstPort = hdr.tcp.srcPort;
-	hdr.ethernet.dstAddr = tmp1;
-	hdr.ipv4.dstAddr = tmp2;
-	hdr.tcp.dstPort = tmp3;
+	hdr.ethernet.srcAddr = tmp1;
+	hdr.ipv4.srcAddr = tmp2;
+	hdr.tcp.srcPort = tmp3;
 	// Set acknumber to incorrect number
 	hdr.tcp.ackNo = 32w0x0;
 	hdr.tcp.syn = 1;
