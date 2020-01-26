@@ -120,7 +120,7 @@ class TCPSYN13(app_manager.RyuApp):
             pkt_in = packet.Packet()
             pkt_in.add_protocol(ethernet.ethernet(dst=pkt_ethernet.src, src=pkt_ethernet.dst)) 
             pkt_in.add_protocol(ipv4.ipv4(dst=pkt_ipv4.src,src=pkt_ipv4.dst,proto=inet.IPPROTO_TCP))
-            pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst_port,dst_port=pkt_tcp.src_port,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=0,seq=500))
+            pkt_in.add_protocol(tcp.tcp(src_port=pkt_tcp.dst_port,dst_port=pkt_tcp.src_port,bits=(tcp.TCP_SYN | tcp.TCP_ACK),ack=1234,seq=56789))
             pkt_in.serialize()
             data = pkt_in.data
             actions = [parser.OFPActionOutput(port=port)]
